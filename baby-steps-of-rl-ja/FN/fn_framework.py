@@ -20,8 +20,8 @@ class FNAgent():
         self.epsilon = epsilon
         self.actions = actions
         self.model = None
-        self.estimate_probs = False
-        self.initialized = False
+        self.estimate_probs = False  # 行動確率を予測するかどうか。
+        self.initialized = False  # 評価関数がセットされているか(loadが呼ばれたか)
 
     def save(self, model_path):
         self.model.save(model_path, overwrite=True, include_optimizer=False)
@@ -111,7 +111,7 @@ class Trainer():
                     env.render()
                 if self.training and observe_interval > 0 and\
                    (self.training_count == 1 or
-                    self.training_count % observe_interval == 0):
+                        self.training_count % observe_interval == 0):
                     frames.append(s)
 
                 a = agent.policy(s)
@@ -158,6 +158,7 @@ class Trainer():
         return True if count != 0 and count % interval == 0 else False
 
     def get_recent(self, count):
+        '''最新のExperienceをcountで指定された分取ってくる'''
         recent = range(len(self.experiences) - count, len(self.experiences))
         return [self.experiences[i] for i in recent]
 
@@ -204,7 +205,7 @@ class Logger():
                 os.mkdir(self.log_dir)
 
         self._callback = tf.compat.v1.keras.callbacks.TensorBoard(
-                            self.log_dir)
+            self.log_dir)
 
     @property
     def writer(self):
@@ -275,8 +276,8 @@ class Logger():
             image_string = output.getvalue()
             output.close()
             image = tf.compat.v1.Summary.Image(
-                        height=height, width=width, colorspace=channel,
-                        encoded_image_string=image_string)
+                height=height, width=width, colorspace=channel,
+                encoded_image_string=image_string)
             value = tf.compat.v1.Summary.Value(tag=tag, image=image)
             values.append(value)
 

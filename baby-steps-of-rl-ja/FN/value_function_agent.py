@@ -42,6 +42,7 @@ class ValueFunctionAgent(FNAgent):
     def _predict(self, states):
         if self.initialized:
             predicteds = self.model.predict(states)
+            print(predicteds.shape)
         else:
             size = len(self.actions) * len(states)
             predicteds = np.random.uniform(size=size)
