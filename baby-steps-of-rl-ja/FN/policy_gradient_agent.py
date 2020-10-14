@@ -121,6 +121,7 @@ class PolicyGradientTrainer(Trainer):
         self.reward_log.append(sum(rewards))
 
         if not agent.initialized:
+            # 最初の呼び出し
             if len(self.experiences) == self.buffer_size:
                 optimizer = K.optimizers.Adam(lr=0.01)
                 agent.initialize(self.experiences, optimizer)
@@ -143,19 +144,18 @@ class PolicyGradientTrainer(Trainer):
 
 
 def main(play):
-    env = CartPoleObserver(gym.make("CartPole-v0"))
+    observer = CartPoleObserver(gym.make("CartPole-v0"))
     trainer = PolicyGradientTrainer()
     path = trainer.logger.path_of("policy_gradient_agent.h5")
 
     if play:
-        agent = PolicyGradientAgent.load(env, path)
-        agent.play(env)
+        agent = PolicyGradientAgent.load(observer, path)
+        agent.play(observer)
     else:
-        trained = trainer.train(env)
+        trained = trainer.train(observer)
         #trainer.logger.plot("Rewards", trainer.reward_log,
         #                    trainer.report_interval)
         trained.save(path)
-
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="PG Agent")
