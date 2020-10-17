@@ -1,14 +1,17 @@
-import os
 import argparse
-import numpy as np
+import os
 from collections import defaultdict
-from sklearn.externals import joblib
-from sklearn.neural_network import MLPRegressor
+
+import numpy as np
 import tensorflow as tf
 import tensorflow.contrib.eager as tfe
+from sklearn.externals import joblib
+from sklearn.neural_network import MLPRegressor
 from tensorflow.python import keras as K
+
 import gym
 from gym.envs.registration import register
+
 register(id="FrozenLakeEasy-v0", entry_point="gym.envs.toy_text:FrozenLakeEnv",
          kwargs={"is_slippery": False})
 

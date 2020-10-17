@@ -1,10 +1,14 @@
 # coding: utf-8
-import sys, os
-sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
+import os
 import pickle
-import numpy as np
+import sys
 from collections import OrderedDict
+
+import numpy as np
+
 from common.layers import *
+
+sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 
 class DeepConvNet:

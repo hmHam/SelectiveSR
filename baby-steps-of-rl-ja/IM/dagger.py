@@ -1,11 +1,14 @@
-import os
 import argparse
+import os
 import warnings
+
 import numpy as np
 from sklearn.externals import joblib
-from sklearn.neural_network import MLPRegressor, MLPClassifier
+from sklearn.neural_network import MLPClassifier, MLPRegressor
+
 import gym
 from gym.envs.registration import register
+
 register(id="FrozenLakeEasy-v0", entry_point="gym.envs.toy_text:FrozenLakeEnv",
          kwargs={"is_slippery": False})
 

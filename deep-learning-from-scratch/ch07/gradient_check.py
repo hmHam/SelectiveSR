@@ -1,5 +1,6 @@
 # coding: utf-8
 import numpy as np
+
 from simple_convnet import SimpleConvNet
 
 network = SimpleConvNet(input_dim=(1,10, 10), 

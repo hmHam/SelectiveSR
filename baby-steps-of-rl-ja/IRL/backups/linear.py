@@ -1,10 +1,12 @@
 import os
+
 import numpy as np
-from tensorflow.python import keras as K
 import tensorflow as tf
+from tensorflow.python import keras as K
+
+import visualizer as viz
 from environment import Environment
 from planner import PolicyIterationPlanner
-import visualizer as viz
 
 
 class LinerIRL():

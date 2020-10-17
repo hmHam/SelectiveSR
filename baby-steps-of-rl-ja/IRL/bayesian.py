@@ -1,8 +1,9 @@
 import numpy as np
 import scipy.stats
 from scipy.special import logsumexp
-from planner import PolicyIterationPlanner
 from tqdm import tqdm
+
+from planner import PolicyIterationPlanner
 
 
 class BayesianIRL():

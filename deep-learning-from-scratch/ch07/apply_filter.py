@@ -1,11 +1,15 @@
 # coding: utf-8
-import sys, os
-sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
-import numpy as np
+import os
+import sys
+
 import matplotlib.pyplot as plt
-from simple_convnet import SimpleConvNet
+import numpy as np
 from matplotlib.image import imread
+
 from common.layers import Convolution
+from simple_convnet import SimpleConvNet
+
+sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 def filter_show(filters, nx=4, show_num=16):
     """

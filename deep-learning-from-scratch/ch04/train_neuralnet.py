@@ -1,10 +1,13 @@
 # coding: utf-8
-from two_layer_net import TwoLayerNet
-from dataset.mnist import load_mnist
+import os
+import sys
+
 import matplotlib.pyplot as plt
 import numpy as np
-import sys
-import os
+
+from dataset.mnist import load_mnist
+from two_layer_net import TwoLayerNet
+
 sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 # データの読み込み

@@ -1,9 +1,13 @@
 # coding: utf-8
-import sys, os
-sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
+import os
+import sys
+
 import numpy as np
-from common.functions import softmax, cross_entropy_error
+
+from common.functions import cross_entropy_error, softmax
 from common.gradient import numerical_gradient
+
+sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 
 class simpleNet:

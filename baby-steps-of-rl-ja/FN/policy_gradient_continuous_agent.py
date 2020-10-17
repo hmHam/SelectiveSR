@@ -1,13 +1,15 @@
-import os
 import argparse
+import os
 import random
+
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.externals import joblib
 import tensorflow as tf
+from sklearn.externals import joblib
+from sklearn.preprocessing import StandardScaler
 from tensorflow.python import keras as K
+
 import gym
-from fn_framework import FNAgent, Trainer, Observer
+from fn_framework import FNAgent, Observer, Trainer
 
 
 class PolicyGradientContinuousAgent(FNAgent):

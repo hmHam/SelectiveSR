@@ -1,7 +1,7 @@
 # coding: utf-8
 # cf.http://d.hatena.ne.jp/white_wheels/20100327/p3
-import numpy as np
 import matplotlib.pylab as plt
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
 
 

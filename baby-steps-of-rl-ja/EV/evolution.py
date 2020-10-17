@@ -1,9 +1,12 @@
-import os
 import argparse
-import numpy as np
-from sklearn.externals.joblib import Parallel, delayed
-from PIL import Image
+import os
+
 import matplotlib.pyplot as plt
+import numpy as np
+from PIL import Image
+from sklearn.externals.joblib import Parallel, delayed
+from tensorflow.python import keras as K
+
 import gym
 
 # Disable TensorFlow GPU for parallel execution
@@ -13,7 +16,6 @@ else:
     os.environ["CUDA_VISIBLE_DEVICES"] = ""
 os.environ["TF_CPP_MIN_LOG_LEVEL"] = "3"
 
-from tensorflow.python import keras as K
 
 
 class EvolutionalAgent():

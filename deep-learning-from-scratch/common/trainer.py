@@ -1,8 +1,12 @@
 # coding: utf-8
-import sys, os
-sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
+import os
+import sys
+
 import numpy as np
+
 from common.optimizer import *
+
+sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 class Trainer:
     """ニューラルネットの訓練を行うクラス
@@ -75,4 +79,3 @@ class Trainer:
         if self.verbose:
             print("=============== Final Test Accuracy ===============")
             print("test acc:" + str(test_acc))
-

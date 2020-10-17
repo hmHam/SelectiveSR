@@ -1,5 +1,6 @@
-from multiprocessing import Pool
 from collections import defaultdict
+from multiprocessing import Pool
+
 import gym
 from el_agent import ELAgent
 from frozen_lake_util import show_q_value

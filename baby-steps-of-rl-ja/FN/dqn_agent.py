@@ -1,12 +1,14 @@
-import random
 import argparse
+import random
 from collections import deque
+
 import numpy as np
-from tensorflow.python import keras as K
 from PIL import Image
+from tensorflow.python import keras as K
+
 import gym
 import gym_ple
-from fn_framework import FNAgent, Trainer, Observer
+from fn_framework import FNAgent, Observer, Trainer
 
 
 class DeepQNetworkAgent(FNAgent):

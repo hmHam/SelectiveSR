@@ -1,8 +1,10 @@
 import os
-import tornado.web
+
 import tornado.escape
+import tornado.web
+
 from environment import Environment
-from planner import ValueIterationPlanner, PolicyIterationPlanner
+from planner import PolicyIterationPlanner, ValueIterationPlanner
 
 
 class IndexHandler(tornado.web.RequestHandler):

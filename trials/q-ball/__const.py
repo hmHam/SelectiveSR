@@ -1,0 +1,2 @@
+TARGET_NUM = 5
+BORDER = 10

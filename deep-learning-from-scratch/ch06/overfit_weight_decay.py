@@ -2,12 +2,14 @@
 import os
 import sys
 
-sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
-import numpy as np
 import matplotlib.pyplot as plt
-from dataset.mnist import load_mnist
+import numpy as np
+
 from common.multi_layer_net import MultiLayerNet
 from common.optimizer import SGD
+from dataset.mnist import load_mnist
+
+sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True)
 

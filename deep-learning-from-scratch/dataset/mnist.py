@@ -3,12 +3,12 @@ try:
     import urllib.request
 except ImportError:
     raise ImportError('You should use Python 3.x')
-import os.path
 import gzip
-import pickle
 import os
-import numpy as np
+import os.path
+import pickle
 
+import numpy as np
 
 url_base = 'http://yann.lecun.com/exdb/mnist/'
 key_file = {

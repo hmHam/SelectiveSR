@@ -1,12 +1,14 @@
-import random
 import argparse
+import random
+
 import numpy as np
-from sklearn.neural_network import MLPRegressor
-from sklearn.preprocessing import StandardScaler
-from sklearn.pipeline import Pipeline
 from sklearn.externals import joblib
+from sklearn.neural_network import MLPRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+
 import gym
-from fn_framework import FNAgent, Trainer, Observer
+from fn_framework import FNAgent, Observer, Trainer
 
 
 class ValueFunctionAgent(FNAgent):

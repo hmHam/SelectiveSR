@@ -1,6 +1,7 @@
 import numpy as np
-from planner import PolicyIterationPlanner
 from tqdm import tqdm
+
+from planner import PolicyIterationPlanner
 
 
 class MaxEntIRL():

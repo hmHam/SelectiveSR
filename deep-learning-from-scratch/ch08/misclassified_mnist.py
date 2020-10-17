@@ -1,10 +1,14 @@
 # coding: utf-8
-import sys, os
-sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
-import numpy as np
+import os
+import sys
+
 import matplotlib.pyplot as plt
-from deep_convnet import DeepConvNet
+import numpy as np
+
 from dataset.mnist import load_mnist
+from deep_convnet import DeepConvNet
+
+sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 
 (x_train, t_train), (x_test, t_test) = load_mnist(flatten=False)

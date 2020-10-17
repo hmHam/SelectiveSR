@@ -1,8 +1,10 @@
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
+
 import gym
 from gym.envs.registration import register
+
 register(id="FrozenLakeEasy-v0", entry_point="gym.envs.toy_text:FrozenLakeEnv",
          kwargs={"is_slippery": False})
 

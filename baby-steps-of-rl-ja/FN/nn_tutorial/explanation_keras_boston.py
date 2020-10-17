@@ -1,10 +1,9 @@
-import numpy as np
-from sklearn.model_selection import train_test_split
-from sklearn.datasets import load_boston
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import pandas as pd
+from sklearn.datasets import load_boston
+from sklearn.model_selection import train_test_split
 from tensorflow.python import keras as K
-
 
 dataset = load_boston()
 

@@ -1,13 +1,16 @@
 import argparse
 from collections import deque
+
 import numpy as np
-from sklearn.preprocessing import StandardScaler
 import tensorflow as tf
-from tensorflow.python import keras as K
 from PIL import Image
+from sklearn.preprocessing import StandardScaler
+from tensorflow.python import keras as K
+
 import gym
 import gym_ple
-from fn_framework import FNAgent, Trainer, Observer
+from fn_framework import FNAgent, Observer, Trainer
+
 tf.compat.v1.disable_eager_execution()
 
 

@@ -1,7 +1,8 @@
 import random
 import unittest
+
 from DP.environment import Environment
-from DP.planner import ValueIterationPlanner, PolicyIterationPlanner
+from DP.planner import PolicyIterationPlanner, ValueIterationPlanner
 
 
 class TestPlanner(unittest.TestCase):

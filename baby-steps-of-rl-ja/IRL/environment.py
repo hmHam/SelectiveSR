@@ -1,7 +1,8 @@
-import numpy as np
-from gym.envs.toy_text import discrete
-import matplotlib.pyplot as plt
 import matplotlib.cm as cm
+import matplotlib.pyplot as plt
+import numpy as np
+
+from gym.envs.toy_text import discrete
 
 
 class GridWorldEnv(discrete.DiscreteEnv):

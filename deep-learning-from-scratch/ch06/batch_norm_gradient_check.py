@@ -1,9 +1,13 @@
 # coding: utf-8
-import sys, os
-sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
+import os
+import sys
+
 import numpy as np
-from dataset.mnist import load_mnist
+
 from common.multi_layer_net_extend import MultiLayerNetExtend
+from dataset.mnist import load_mnist
+
+sys.path.append(os.pardir)  # 親ディレクトリのファイルをインポートするための設定
 
 # データの読み込み
 (x_train, t_train), (x_test, t_test) = load_mnist(normalize=True, one_hot_label=True)

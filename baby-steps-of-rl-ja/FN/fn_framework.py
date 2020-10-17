@@ -1,14 +1,13 @@
-import os
 import io
+import os
 import re
-from collections import namedtuple
-from collections import deque
+from collections import deque, namedtuple
+
+import matplotlib.pyplot as plt
 import numpy as np
 import tensorflow as tf
-from tensorflow.python import keras as K
 from PIL import Image
-import matplotlib.pyplot as plt
-
+from tensorflow.python import keras as K
 
 Experience = namedtuple("Experience",
                         ["s", "a", "r", "n_s", "d"])
