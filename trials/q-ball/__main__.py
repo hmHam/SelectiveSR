@@ -12,27 +12,33 @@ from agent import BallAgent
 from env import Env
 from viewer import Viewer
 from tester import Tester
+from trainer import Trainer
 
 # コマンドラインオプション
 parser = argparse.ArgumentParser()
 parser.add_argument('--episode_count', '-e', type=int, default=10000)
 parser.add_argument('--interval', '-i', type=int, default=50)
+parser.add_argument('--verbose', '-v', action='store_false')
 parser.add_argument('--epsilon', '-ep', type=float, default=0.2)
 args = parser.parse_args()
 
 # 学習
 agent = BallAgent(epsilon=args.epsilon)
 env = Env()
-agent.learn(
-    env,
+trainer = Trainer(env, agent)
+trainer.train(
     episode_count=args.episode_count,
-    report_interval=args.interval
+    report_interval=args.interval,
+    verbose=args.verbose
 )
+
+# テストフェーズ
+tester = Tester(env, agent)
+result = tester.test()
+print(result)
 
 # グラフを表示
 viewer = Viewer(agent)
 agent.logger.save_result(env, viewer)
-viewer.plot_result(env)
+viewer.plot_result(env, interval=args.interval)
 
-# テストフェーズ
-tester = Tester()

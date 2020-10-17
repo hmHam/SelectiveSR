@@ -10,7 +10,28 @@ class Action(IntEnum):
     MINUS_ONE = 2
     DIVIDE_TWO = 3
     END = 4
-  
+
+    @classmethod
+    def plus_one_action(cls, state):
+        state.x += 1
+
+    @classmethod
+    def times_two_action(cls, state):
+        state.x *= 2
+
+    @classmethod
+    def minus_one_action(cls, state):
+        state.x -= 1
+
+    @classmethod
+    def divide_two_action(cls, state):
+        state.x //= 2
+
+    @classmethod
+    def end_action(cls, env):
+        env.done = True
+        env.step_count -= 1
+
 
 class State(object):
     # TODO: Q学習がうまくいかない
@@ -31,9 +52,11 @@ class Env(object):
         self.done = False
         self.step_count = 0
 
-    def reset(self):
-        # REVIEW: おかしいかもしれん
-        self.agent_state = State(randint(0, BORDER))
+    def reset(self, x=None):
+        if x is None:
+            self.agent_state = State(randint(0, BORDER))
+        else:
+            self.agent_state = State(x)
         self.done = False
         self.step_count = 0
         return self.agent_state
@@ -59,17 +82,16 @@ class Env(object):
             return s
         self.step_count += 1
         if action == Action.PLUS_ONE:
-            s.x += 1
+            Action.plus_one_action(s)
         elif action == Action.TIMES_TWO:
-            s.x *= 2
+            Action.times_two_action(s)
         elif action == Action.MINUS_ONE:
-            s.x -= 1
+            Action.minus_one_action(s)
         elif action == Action.DIVIDE_TWO:
-            s.x //= 2
+            Action.divide_two_action(s)
         elif action == Action.END:
             # 値は変更しない
-            self.done = True
-            self.step_count -= 1
+            Action.end_action(self)
         # s.xが範囲を超えていたら終了して値を更新しない
         if s.x > BORDER or s.x < 0:
             self.done = True
