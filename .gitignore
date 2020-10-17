@@ -1,1 +1,5 @@
 deep-learning-from-scratch/dataset/*.pkl
+.DS_Store
+__pycache__/
+.ipynb_checkpoints/
+logs/
