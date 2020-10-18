@@ -1,6 +1,7 @@
 import numpy as np
 from __const import BORDER
 
+
 class Trainer(object):
     def __init__(self, env, agent):
         self.env = env
@@ -27,10 +28,11 @@ class Trainer(object):
                 gain = reward + gamma * max(self.agent.Q[n_state.x])
                 estimated = self.agent.Q[s.x][a]
                 self.agent.Q[s.x][a] += learning_rate * (gain - estimated)
-                if s.x > BORDER or s.x < 0:
-                    print(s.x)
                 s = n_state
             else:
+                # self.agent.Qの0 - 10以外の学習結果は削除する
+                for out_state in [k for k in self.agent.Q if k < 0 or k > BORDER]:
+                    del self.agent.Q[out_state]
                 self.agent.logger.log(reward, self.env.step_count)
 
             # 学習の進捗状況を表示
@@ -43,4 +45,4 @@ class Trainer(object):
         mean = np.round(np.mean(rewards), 3)
         std = np.round(np.std(rewards), 3)
         print("At Episode {} average reward is {} (+/-{}).".format(
-                episode, mean, std))
+            episode, mean, std))
