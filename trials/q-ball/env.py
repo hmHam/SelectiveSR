@@ -72,7 +72,9 @@ class Env(object):
         ]
 
     def reward_func(self, state):
-        # FIXME: (要)重み付け, １項目: ステップ数のペナルティ
+        if state.x > BORDER or state.x < 0:
+            # 範囲を超えたら超えた分だけペナルティ
+            return - abs(state.x - TARGET_NUM)
         return - BORDER / 5 + (BORDER- abs(state.x - TARGET_NUM))
 
     def _move(self, state, action):
@@ -92,16 +94,15 @@ class Env(object):
         elif action == Action.END:
             # 値は変更しない
             Action.end_action(self)
-        # s.xが範囲を超えていたら終了して値を更新しない
+        # FIXME: 範囲外の状態も取れるようにする
         if s.x > BORDER or s.x < 0:
             self.done = True
-            s = state.clone()
         return s
 
     def step(self, action):
         state = self.agent_state
         # 100かAction.ENDをとる場合が終了条件
         next_state = self._move(state, action)
-        reward = self.reward_func(state)
+        reward = self.reward_func(next_state)
         self.agent_state = next_state
         return next_state, reward, self.done

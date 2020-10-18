@@ -1,5 +1,5 @@
 import numpy as np
-
+from __const import BORDER
 
 class Trainer(object):
     def __init__(self, env, agent):
@@ -27,6 +27,8 @@ class Trainer(object):
                 gain = reward + gamma * max(self.agent.Q[n_state.x])
                 estimated = self.agent.Q[s.x][a]
                 self.agent.Q[s.x][a] += learning_rate * (gain - estimated)
+                if s.x > BORDER or s.x < 0:
+                    print(s.x)
                 s = n_state
             else:
                 self.agent.logger.log(reward, self.env.step_count)

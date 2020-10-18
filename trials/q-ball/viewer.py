@@ -5,7 +5,6 @@ from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 plt.style.use('ggplot')
 
 
-
 class Viewer(object):
     def __init__(self, env, agent, interval):
         self.env = env
@@ -71,6 +70,7 @@ class Viewer(object):
         
     def _plot_q_value(self, env, ax):
         '''学習したQ-tableの値を表示'''
+        print(sorted(self.agent.Q.keys()))
         vmin, vmax = min(self.agent.Q), max(self.agent.Q)
         kk = []
         for vals in self.agent.Q.values():
@@ -81,12 +81,12 @@ class Viewer(object):
         reward_map = np.zeros((3, size))
         for s, vals in self.agent.Q.items():
             _c = 3 * s + 1
-            reward_map[1][_c] = 255 * vals[4] / (qmax - qmin) # END
+            reward_map[1][_c] = vals[4] # END
             # NOTE: 反時計周りに正方向に大きく移動する順に並べた
-            reward_map[1][_c + 1] = 255 * vals[1] / (qmax - qmin)# x2
-            reward_map[0][_c] = 255 * vals[0]/ (qmax - qmin) # +1
-            reward_map[1][_c - 1] = 255 * vals[2] / (qmax - qmin) # -1
-            reward_map[2][_c] = 255 * vals[3] / (qmax - qmin) # /2
+            reward_map[1][_c + 1] = vals[1] # x2
+            reward_map[0][_c] =  vals[0] # +1
+            reward_map[1][_c - 1] = vals[2] # -1
+            reward_map[2][_c] = vals[3] # /2
         ax.axvline(x=3 * 100 + 1, ymin=qmin, ymax=qmax)
         ax.imshow(reward_map, cmap=cm.RdYlGn, interpolation="bilinear",
                vmax=abs(reward_map).max(), vmin=-abs(reward_map).max())
