@@ -2,17 +2,18 @@ import matplotlib.cm as cm
 import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
-
 plt.style.use('ggplot')
 
 
 
 class Viewer(object):
-    def __init__(self, agent):
+    def __init__(self, env, agent, interval):
+        self.env = env
         self.agent = agent
+        self.interval = interval
         self.logger = agent.logger
 
-    def plot_result(self, env, log_path='', interval=500):
+    def plot_result(self, log_path=''):
         # レイアウトの作成
         fig = plt.figure(figsize=(14, 6))
         plt.subplots_adjust(hspace=0.6)
@@ -25,11 +26,11 @@ class Viewer(object):
         ax3 = fig.add_subplot(gs_3[:, :])
         
         # 学習段階での各エピソードの最終ステップの即時報酬をプロット
-        self._plot_last_reward(ax1, interval)
+        self._plot_last_reward(ax1, self.interval)
         # ステップカウントの推移をプロット
-        self._plot_step_count(ax2, interval)
+        self._plot_step_count(ax2, self.interval)
         # 学習したQ-tableの値を表示
-        self._plot_q_value(env, ax3)
+        self._plot_q_value(self.env, ax3)
 
         if log_path:
             fig.savefig(log_path)
@@ -50,6 +51,7 @@ class Viewer(object):
                             alpha=0.1, color="b")
         ax.plot(indices, means, "o-", color="b",
                     label=f"Step Counts for each {interval} episode")
+        ax.legend(loc='best')
 
     def _plot_last_reward(self, ax, interval):
         '''学習段階での各エピソードの最終ステップの即時報酬をプロット'''

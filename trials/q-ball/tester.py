@@ -52,4 +52,4 @@ class Tester(object):
 
     def _get_estimates(self, agent, start_points):
         '''エージェントに生成した乱数から推論させてかかったステップを記録'''
-        return [agent.play(self.env, s) for s in start_points]
+        return [agent.play(self.env, s)['step_count'] for s in start_points]

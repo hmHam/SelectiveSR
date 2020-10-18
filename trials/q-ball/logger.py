@@ -17,7 +17,7 @@ class Logger(object):
         self.reward_log.append(reward)
         self.step_count_log.append(step_count)
 
-    def save_result(self, env, viewer):
+    def save_result(self, viewer):
         # 以下結果の表示
         timestamp = datetime.now().strftime('%Y-%m-%d:%H:%M:%S')
         log_dir = Path(__file__).parent / f'logs/{timestamp}'
@@ -26,7 +26,7 @@ class Logger(object):
         # 報酬関数のコードを保存
         with open(log_dir / 'func.txt', 'w') as f:
             f.write(
-                inspect.getsource(env.reward_func)
+                inspect.getsource(viewer.env.reward_func)
             )
 
         # ログをpickleデータとして保存
@@ -34,4 +34,4 @@ class Logger(object):
             pickle.dump(dict(self.agent.Q), f)
 
         # グラフを画像で保存
-        viewer.plot_result(env, str(log_dir / 'fig.png'))
+        viewer.plot_result(str(log_dir / 'fig.png'))

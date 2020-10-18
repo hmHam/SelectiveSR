@@ -8,6 +8,8 @@ Stateはボールの座標x
 
 import argparse
 
+import numpy as np
+
 from agent import BallAgent
 from env import Env
 from viewer import Viewer
@@ -16,13 +18,18 @@ from trainer import Trainer
 
 # コマンドラインオプション
 parser = argparse.ArgumentParser()
+parser.add_argument('--seed', '-s', type=int, default=0)
 parser.add_argument('--episode_count', '-e', type=int, default=10000)
-parser.add_argument('--interval', '-i', type=int, default=50)
+parser.add_argument('--interval', '-i', type=int, default=500)
 parser.add_argument('--verbose', '-v', action='store_false')
 parser.add_argument('--epsilon', '-ep', type=float, default=0.2)
 args = parser.parse_args()
 
+# seedを固定
+np.random.seed(args.seed)
+
 # 学習
+print('Agentの学習を開始します')
 agent = BallAgent(epsilon=args.epsilon)
 env = Env()
 trainer = Trainer(env, agent)
@@ -32,13 +39,14 @@ trainer.train(
     verbose=args.verbose
 )
 
-# テストフェーズ
+# テスト
+print('Agentの学習結果を評価します')
 tester = Tester(env, agent)
 result = tester.test()
 print(result)
 
 # グラフを表示
-viewer = Viewer(agent)
-agent.logger.save_result(env, viewer)
-viewer.plot_result(env, interval=args.interval)
+viewer = Viewer(env, agent, interval=args.interval)
+viewer.plot_result()
+agent.logger.save_result(viewer)
 
