@@ -1,9 +1,10 @@
 import numpy as np
-from __const import BORDER, TARGET_NUM
 
 
 class Tester(object):
-    def __init__(self, env, agent):
+    def __init__(self, env, agent, TARGET_NUM, BORDER):
+        self.target_num = TARGET_NUM
+        self.border = BORDER
         self.agent = agent
         self.env = env
 
@@ -11,7 +12,7 @@ class Tester(object):
         '''結果の表示'''
         # 乱数の生成とその乱数に対する正解データの作成
         np.random.seed(seed)
-        start_points = np.random.randint(0, BORDER, n)
+        start_points = np.random.randint(0, self.border, n)
         y = np.array(self._get_labels(start_points))
         # 学習したAgentでの結果を取得
         est = np.array(self._get_estimates(self.agent, start_points))
@@ -23,12 +24,11 @@ class Tester(object):
 
     def _get_labels(self, start_points):
         start_points = list(start_points)
-        return [self._calc_min_step(s) for s in start_points]            
+        return [self._calc_min_step(s) for s in start_points]
 
-    @staticmethod
-    def _calc_min_step(x):
+    def _calc_min_step(self, x):
         '''入力されたxに対する最小のステップ数を返す'''
-        T = TARGET_NUM
+        T = self.target_num
         if x < T:
             if x == 0:
                 # 全て+1

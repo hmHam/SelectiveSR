@@ -1,15 +1,13 @@
 from enum import IntEnum, auto
 from random import randint
 
-from __const import BORDER, TARGET_NUM
-
 
 class Action(IntEnum):
     PLUS_ONE = 0
     TIMES_TWO = 1
-    MINUS_ONE = 2
-    DIVIDE_TWO = 3
-    END = 4
+    END = 2
+    MINUS_ONE = 3
+    DIVIDE_TWO = 4
 
     @classmethod
     def plus_one_action(cls, state):
@@ -35,26 +33,29 @@ class Action(IntEnum):
 
 class State(object):
     # TODO: Q学習がうまくいかない
-    # solution: 
+    # solution:
     # (1) 偶数か奇数かなど xをいくつかの細かい情報にわける -> ベクトル化
     # (2) Q-tableをNNなどで近似 <- 分散表現が
     def __init__(self, x):
         self.x = x
-    
+
     def clone(self):
         return State(self.x)
 
 
 class Env(object):
     '''報酬を返す環境'''
-    def __init__(self):
+
+    def __init__(self, TARGET_NUM, BORDER):
+        self.border = BORDER
+        self.target_num = TARGET_NUM
         self.agent_state = State(randint(0, BORDER))
         self.done = False
         self.step_count = 0
 
     def reset(self, x=None):
         if x is None:
-            self.agent_state = State(randint(0, BORDER))
+            self.agent_state = State(randint(0, self.border))
         else:
             self.agent_state = State(x)
         self.done = False
@@ -72,14 +73,14 @@ class Env(object):
         ]
 
     def reward_func(self, state):
-        if state.x > BORDER or state.x < 0:
+        if state.x > self.border or state.x < 0:
             # 範囲を超えたら超えた分だけペナルティ
-            return - abs(state.x - TARGET_NUM)
-        return - BORDER / 5 + (BORDER- abs(state.x - TARGET_NUM))
+            return - abs(state.x - self.target_num)
+        return (- self.border / 5) + (self.border - abs(state.x - self.target_num))
 
     def _move(self, state, action):
         s = state.clone()
-        if state.x == TARGET_NUM:
+        if state.x == self.target_num:
             self.done = True
             return s
         self.step_count += 1
@@ -95,7 +96,7 @@ class Env(object):
             # 値は変更しない
             Action.end_action(self)
         # FIXME: 範囲外の状態も取れるようにする
-        if s.x > BORDER or s.x < 0:
+        if s.x > self.border or s.x < 0:
             self.done = True
         return s
 

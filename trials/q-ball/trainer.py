@@ -1,9 +1,9 @@
 import numpy as np
-from __const import BORDER
 
 
 class Trainer(object):
-    def __init__(self, env, agent):
+    def __init__(self, env, agent, BORDER):
+        self.border = BORDER
         self.env = env
         self.agent = agent
 
@@ -25,13 +25,13 @@ class Trainer(object):
                 a = self.agent.policy(s, len(self.env.actions))
                 n_state, reward, done = self.env.step(a)
 
-                gain = reward + gamma * max(self.agent.Q[n_state.x])
+                gain = reward + gamma * self.agent.Q[n_state.x][a]
                 estimated = self.agent.Q[s.x][a]
                 self.agent.Q[s.x][a] += learning_rate * (gain - estimated)
                 s = n_state
             else:
                 # self.agent.Qの0 - 10以外の学習結果は削除する
-                for out_state in [k for k in self.agent.Q if k < 0 or k > BORDER]:
+                for out_state in [k for k in self.agent.Q if k < 0 or k > self.border]:
                     del self.agent.Q[out_state]
                 self.agent.logger.log(reward, self.env.step_count)
 

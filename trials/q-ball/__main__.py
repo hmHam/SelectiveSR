@@ -23,6 +23,9 @@ parser.add_argument('--episode_count', '-e', type=int, default=10000)
 parser.add_argument('--interval', '-i', type=int, default=500)
 parser.add_argument('--verbose', '-v', action='store_false')
 parser.add_argument('--epsilon', '-ep', type=float, default=0.2)
+# 目標の点と上界はここで決める
+parser.add_argument('--target-number', '-t', type=int, default=5)
+parser.add_argument('--border', '-b', type=int, default=10)
 args = parser.parse_args()
 
 # seedを固定
@@ -31,8 +34,8 @@ np.random.seed(args.seed)
 # 学習
 print('Agentの学習を開始します')
 agent = BallAgent(epsilon=args.epsilon)
-env = Env()
-trainer = Trainer(env, agent)
+env = Env(args.target_number, args.border)
+trainer = Trainer(env, agent, args.border)
 trainer.train(
     episode_count=args.episode_count,
     report_interval=args.interval,
@@ -41,12 +44,21 @@ trainer.train(
 
 # テスト
 print('Agentの学習結果を評価します')
-tester = Tester(env, agent)
+tester = Tester(
+    env,
+    agent,
+    args.target_number,
+    args.border
+)
 result = tester.test()
 print(result)
 
 # グラフを表示
-viewer = Viewer(env, agent, interval=args.interval)
+viewer = Viewer(
+    env,
+    agent,
+    interval=args.interval,
+    TARGET_NUM=args.target_number
+)
 viewer.plot_result()
 agent.logger.save_result(viewer)
-
