@@ -1,5 +1,8 @@
 from enum import IntEnum, auto
 from random import randint
+from scipy.special import eval_legendre
+import numpy as np
+D = 5
 
 
 class Action(IntEnum):
@@ -31,12 +34,11 @@ class Action(IntEnum):
 
 
 class State(object):
-    # TODO: Q学習がうまくいかない
-    # solution:
-    # (1) 偶数か奇数かなど xをいくつかの細かい情報にわける -> ベクトル化
-    # (2) Q-tableをNNなどで近似 <- 分散表現が
     def __init__(self, x):
-        self.x = x
+        # TODO: ルジャンドル多項式を用いて分散表現を作る
+        vec = []
+        for i in range(D):
+            pass
 
     def clone(self):
         return State(self.x)
@@ -87,11 +89,7 @@ class Env(object):
         return -0.5
 
     def _move(self, state, action):
-        # TODO: 
         ns = state.clone()
-        if state.x == self.target_num:
-            self.done = True
-            return ns
         self.step_count += 1
         if action == Action.PLUS_ONE:
             Action.plus_one_action(ns)

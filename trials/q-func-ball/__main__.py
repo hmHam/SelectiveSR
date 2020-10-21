@@ -26,7 +26,6 @@ parser.add_argument('--epsilon', '-ep', type=float, default=0.2)
 # 目標の点と上界はここで決める
 parser.add_argument('--target-number', '-t', type=int, default=5)
 parser.add_argument('--border', '-b', type=int, default=10)
-parser.add_argument('--test-count', '-tst', type=int, default=1)
 args = parser.parse_args()
 
 # seedを固定
@@ -51,18 +50,15 @@ tester = Tester(
     args.target_number,
     args.border
 )
-print('結果を評価します')
-result = tester.test(trial_count=args.test_count)
+result = tester.test()
+print(result)
 
-print('グラフを表示します')
 # グラフを表示
 viewer = Viewer(
     env,
     agent,
-    tester,
-    args.interval,
+    interval=args.interval,
     TARGET_NUM=args.target_number
 )
 viewer.plot_result()
-print('ロギングします')
-agent.logger.save_figure(viewer)
+agent.logger.save_result(viewer)

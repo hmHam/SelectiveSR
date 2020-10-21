@@ -11,7 +11,7 @@ class Trainer(object):
         self,
         episode_count=1000,
         gamma=0.9,
-        learning_rate=0.05,
+        learning_rate=0.1,
         report_interval=500,
         verbose=True
     ):

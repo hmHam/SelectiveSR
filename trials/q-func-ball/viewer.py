@@ -7,37 +7,14 @@ plt.style.use('ggplot')
 
 
 class Viewer(object):
-    def __init__(self, env, agent, tester, interval, TARGET_NUM):
+    def __init__(self, env, agent, interval, TARGET_NUM):
         self.target_num = TARGET_NUM
         self.env = env
         self.agent = agent
         self.interval = interval
         self.logger = agent.logger
-        self.tester = tester
 
     def plot_result(self, log_path=''):
-        fig1 = self.plot_train_result(log_path)
-        fig2 = self.plot_test_results(log_path)
-        if log_path:
-            fig1.savefig(f'{log_path}/train_result.png')
-            fig2.savefig(f'{log_path}/test_result.png')
-        else:
-            plt.show()
-
-    def plot_test_results(self, log_path):
-        fig = plt.figure(figsize=(14, 8))
-        ax = fig.add_subplot(1, 1, 1)
-        n, _, _ = ax.hist(
-            self.tester.results,
-            color='blue'
-        )
-        ax.axvline(x=self.tester.results.mean(), ymin=0, ymax=max(n))
-        ax.set_title('テスト結果')
-        ax.set_xlabel('正解数(階級)')
-        ax.set_ylabel('頻度')
-        return fig
-
-    def plot_train_result(self, log_path):
         # レイアウトの作成
         fig = plt.figure(figsize=(20, 8))
         plt.subplots_adjust(hspace=0.6)
@@ -57,7 +34,11 @@ class Viewer(object):
         self._plot_step_count(ax2, self.interval)
         # 学習したQ-tableの値を表示
         self._plot_q_value(self.env, ax3, fig)
-        return fig
+
+        if log_path:
+            fig.savefig(log_path)
+        else:
+            plt.show()
 
     def _plot_last_reward(self, ax, interval):
         '''学習段階での各エピソードの最終ステップの即時報酬をプロット'''
