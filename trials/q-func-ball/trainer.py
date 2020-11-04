@@ -1,48 +1,91 @@
+import sys
+from collections import deque
+import random
 import numpy as np
+from agent import Experience
+import warnings
+
+class Observer(object):
+    # 最初1024サンプルの経験データを使用して正規化する
+    def __init__(self, states):
+        self.mean = states.mean(axis=0)
+        self.std = states.std(axis=0)
+
+    def transform(self, states):
+        return (states - self.mean) / self.std
 
 
 class Trainer(object):
-    def __init__(self, env, agent, BORDER):
+    def __init__(self, env, agent, BORDER, buffer_size=1024, batch_size=32, gamma=0.9):
+        # experience-replayを実装 <- 経験の偏りを防ぎ学習を安定化する
+        self.buffer_size = buffer_size
+        self.batch_size = batch_size
+        self.experiences = deque(maxlen=batch_size)
+
+        self.gamma = gamma
         self.border = BORDER
         self.env = env
         self.agent = agent
+        self.observer = None
 
     def train(
         self,
-        episode_count=1000,
-        gamma=0.9,
-        learning_rate=0.1,
-        report_interval=500,
-        verbose=True
+        episode_count=10000,
+        learning_rate=0.05,
+        interval=0
     ):
-        self.agent.logger.reset()
-        self.agent.initialize_Q_table(self.env)
-        # TODO: stateを意味のある情報でつくる
-        for e in range(episode_count):
+        self.experiences = deque(maxlen=self.buffer_size)
+        self.trained_count = 0
+        self.reward_log = []
+        
+        # Experienceを集める
+        for _ in range(episode_count):
             s = self.env.reset()
-            done = False
+            done = self.env.done
+            step_count = 0
             while not done:
                 a = self.agent.policy(s, len(self.env.actions))
                 n_state, reward, done = self.env.step(a)
-
-                gain = reward + gamma * max(self.agent.Q[n_state.x])
-                estimated = self.agent.Q[s.x][a]
-                self.agent.Q[s.x][a] += learning_rate * (gain - estimated)
+                e = Experience(s, a, reward, n_state, done)
+                self.experiences.append(e)
+                # 経験のサンプル数がbuffer_sizeを超えたら更新
+                if len(self.experiences) == self.buffer_size:
+                    # agentの行動評価関数を更新
+                    self.observer = Observer(np.vstack([e.s.val for e in self.experiences]))
+                    self.update_function(learning_rate)
                 s = n_state
-            else:
-                # self.agent.Qの0 - 10以外の学習結果は削除する
-                for out_state in [k for k in self.agent.Q if k < 0 or k > self.border]:
-                    del self.agent.Q[out_state]
-                self.agent.logger.log(reward, self.env.step_count)
+                step_count += 1
+            # 直近のエピソードの報酬の総和を記録
+            reward = sum([self.experiences[i].r for i in range(len(self.experiences) - step_count, len(self.experiences))])
+            self.agent.logger.log(reward, step_count)
+        return self.agent
+    
+    def update_function(self, learning_rate):
+        '''集めた経験を使ってAgentの行動評価関数を更新する'''
+        sampled_experiences = random.sample(self.experiences, self.batch_size)
+        # TDをつくる
+        states = []
+        # 各状態での実際の価値を求める
+        gains = []
+        for e in sampled_experiences:
+            states.append(e.s)
+            reward = e.r
+            n_s_val = self.observer.transform(e.n_s.val)
+            n_a_evals = self.agent.q_func(n_s_val)
+            if not e.d:
+                # On-Policyだとここが変わる
+                reward += self.gamma * np.max(n_a_evals)
+            n_a_evals[e.a] = reward
+            gains.append(n_a_evals)
+        gains = np.vstack(gains)
 
-            # 学習の進捗状況を表示
-            if verbose and e != 0 and e % report_interval == 0:
-                self.progress_report(episode=e, interval=report_interval)
-
-    def progress_report(self, interval=100, episode=-1):
-        '''学習の結果得られた報酬の履歴を可視化'''
-        rewards = self.agent.logger.reward_log[-interval:]
-        mean = np.round(np.mean(rewards), 3)
-        std = np.round(np.std(rewards), 3)
-        print("At Episode {} average reward is {} (+/-{}).".format(
-            episode, mean, std))
+        # 勾配降下方でパラメーターQを更新
+        for idx in range(gains.shape[0]):
+            s = self.observer.transform(states[idx].val)
+            gain = gains[idx]
+            
+            # self.agent.q_func.Q -= learning_rate * (
+            #     s.T @ s * self.agent.q_func.Q - np.vstack([s] * gain.size).T @ np.diag(gain)
+            # )
+            for j in range(self.agent.q_func.Q.shape[1]):
+                self.agent.q_func.Q[:, j] -= learning_rate * s * (s.T @ self.agent.q_func.Q[:, j] - gain[j])

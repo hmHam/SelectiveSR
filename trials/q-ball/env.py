@@ -72,19 +72,22 @@ class Env(object):
         ]
 
     def reward_func(self, state, n_state):
+        total = 0
         if n_state.x > self.border or n_state.x < 0:
             # 範囲を超えたら超えた分だけペナルティ
-            return -abs(n_state.x - self.target_num)/self.border
+            total += -abs(n_state.x - self.target_num)/self.border
         # TODO: TARGET_NUMから離れる方向の状態遷移はペナルティ
         diff = abs(self.target_num - n_state.x) - abs(self.target_num - state.x)
         if diff > 0:
-            return -3 * diff
+            total += -3 * diff
         # FIXME: ENDが全体的に評価高い -> 諦めずに頑張った方がいいと思ってほしい
-        if self.done:
-            step_reward = 0.55 * (abs(self.target_num - n_state.x) - self.step_count)/self.target_num
+        if self.done and n_state.x != self.target_num:
+            return -2
+        elif self.done:
+            # step_reward = 0.55 * (abs(self.target_num - n_state.x) - self.step_count)/self.target_num
             loss_reward = 2 * (self.border - abs(n_state.x - self.target_num))/self.border
-            return step_reward + loss_reward
-        return -0.5
+            return loss_reward
+        return -0.5 + total
 
     def _move(self, state, action):
         # TODO: 

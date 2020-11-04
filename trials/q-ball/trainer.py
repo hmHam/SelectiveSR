@@ -24,8 +24,9 @@ class Trainer(object):
             while not done:
                 a = self.agent.policy(s, len(self.env.actions))
                 n_state, reward, done = self.env.step(a)
-
-                gain = reward + gamma * max(self.agent.Q[n_state.x])
+                
+                n_action = self.agent.policy(n_state, len(self.env.actions))
+                gain = reward + gamma * self.agent.Q[n_state.x][n_action]
                 estimated = self.agent.Q[s.x][a]
                 self.agent.Q[s.x][a] += learning_rate * (gain - estimated)
                 s = n_state

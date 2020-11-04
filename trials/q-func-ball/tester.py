@@ -1,4 +1,6 @@
 import numpy as np
+import matplotlib.pyplot as plt
+import japanize_matplotlib
 
 
 class Tester(object):
@@ -7,9 +9,19 @@ class Tester(object):
         self.border = BORDER
         self.agent = agent
         self.env = env
+        self.logger = agent.logger
+        self.results = None
 
-    def test(self, n=100, seed=0):
-        '''結果の表示'''
+    def test(self, n=100, seed=0, trial_count=1, visual=True):
+        '''結果を配列で返す'''
+        self.results = np.array([self.test_once(n, seed + t)['success'] for t in range(trial_count)])
+        self.logger.save_test_result(self.results)
+        return {
+            'size': n,
+            'results': self.results,
+        }
+
+    def test_once(self, n, seed):
         # 乱数の生成とその乱数に対する正解データの作成
         np.random.seed(seed)
         start_points = np.random.randint(0, self.border, n)
@@ -28,6 +40,8 @@ class Tester(object):
 
     def _calc_min_step(self, x):
         '''入力されたxに対する最小のステップ数を返す'''
+        if x == 0:
+            return 1 + self._calc_min_step(1)
         T = self.target_num
         if x < T:
             if x == 0:

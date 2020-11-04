@@ -12,10 +12,6 @@ from fn_framework import FNAgent, Observer, Trainer
 
 
 class ValueFunctionAgent(FNAgent):
-
-    def save(self, model_path):
-        joblib.dump(self.model, model_path)
-
     @classmethod
     def load(cls, env, model_path, epsilon=0.0001):
         actions = list(range(env.action_space.n))
@@ -67,6 +63,9 @@ class ValueFunctionAgent(FNAgent):
         estimateds = np.array(estimateds)
         states = self.model.named_steps["scaler"].transform(states)
         self.model.named_steps["estimator"].partial_fit(states, estimateds)
+
+    def save(self, model_path):
+        joblib.dump(self.model, model_path)
 
 
 class CartPoleObserver(Observer):

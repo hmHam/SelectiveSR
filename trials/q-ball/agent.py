@@ -12,17 +12,16 @@ class BallAgent(object):
         self.logger = Logger(self)
 
     def initialize_Q_table(self, env):
+        # TODO: __init__に入れれるか検討
         self.Q = defaultdict(lambda: [0] * len(env.actions))
 
     def policy(self, s, action_num):
         if np.random.random() < self.epsilon:
             return np.random.randint(action_num)
-        else:
-            # Q-tableに情報が存在する場合
-            if s.x in self.Q and sum(self.Q[s.x]) != 0:
-                return np.argmax(self.Q[s.x])
-            else:
-                return np.random.randint(action_num)
+        # Q-tableに情報が存在する場合
+        if s.x in self.Q and sum(self.Q[s.x]) != 0:
+            return np.argmax(self.Q[s.x])
+        return np.random.randint(action_num)
     
     def play(self, env, x):
         state = env.reset(x)
