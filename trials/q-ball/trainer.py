@@ -30,11 +30,10 @@ class Trainer(object):
                 estimated = self.agent.Q[s.x][a]
                 self.agent.Q[s.x][a] += learning_rate * (gain - estimated)
                 s = n_state
-            else:
-                # self.agent.Qの0 - 10以外の学習結果は削除する
-                for out_state in [k for k in self.agent.Q if k < 0 or k > self.border]:
-                    del self.agent.Q[out_state]
-                self.agent.logger.log(reward, self.env.step_count)
+            # self.agent.Qの0 - 10以外の学習結果は削除する
+            for out_state in [k for k in self.agent.Q if k < 0 or k > self.border]:
+                del self.agent.Q[out_state]
+            self.agent.logger.log(reward, self.env.step_count)
 
             # 学習の進捗状況を表示
             if verbose and e != 0 and e % report_interval == 0:

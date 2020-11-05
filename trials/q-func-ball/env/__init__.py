@@ -12,15 +12,15 @@ class Env(object):
     def __init__(self, TARGET_NUM, BORDER):
         self.border = BORDER
         self.target_num = TARGET_NUM
-        self.state = State(randint(0, BORDER))
+        self.state = State(randint(0, BORDER), BORDER)
         self.done = False
         self.step_count = 0
 
     def reset(self, x=None):
         if x is None:
-            self.state = State(randint(0, self.border))
+            self.state = State(randint(0, self.border), self.border)
         else:
-            self.state = State(x)
+            self.state = State(x, self.border)
         self.done = False
         self.step_count = 0
         return self.state
@@ -43,13 +43,14 @@ class Env(object):
         # TODO: TARGET_NUMから離れる方向の状態遷移はペナルティ
         diff = abs(self.target_num - n_state.x) - abs(self.target_num - state.x)
         if diff > 0:
-            total += - 3 * diff
+            total -= diff / self.border
+        else:
+            total += diff / self.border
         # FIXME: ENDが全体的に評価高い -> 諦めずに頑張った方がいいと思ってほしい
         if self.done and n_state.x != self.target_num:
-            return -2
+            return -3
         elif self.done:
-            # step_reward = 0.55 * (abs(self.target_num - n_state.x) - self.step_count)/self.target_num
-            loss_reward = 2 * (self.border - abs(n_state.x - self.target_num))/self.border
+            loss_reward = (self.border - abs(n_state.x - self.target_num))/self.border
             return loss_reward
         return -0.05 + total
 

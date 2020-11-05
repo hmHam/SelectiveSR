@@ -1,11 +1,8 @@
-from collections import defaultdict, namedtuple
+from collections import defaultdict
 import numpy as np
 
 from .logger import Logger
 from .function import QFunction
-
-# d = doneのフラグ
-Experience = namedtuple("Experience", ["s", "a", "r", "n_s", "d"])
 
 
 class BallAgent(object):
@@ -25,9 +22,9 @@ class BallAgent(object):
         # e-Greedy法
         if np.random.random() < self.epsilon:
             return np.random.randint(action_num)
-        action_evals = self.q_func(s.val)
-        if self.onPolicy:
-            return np.random.choice(self.actions, p=action_evals)
+        action_evals = self.q_func(s.vec)
+        # if self.onPolicy:
+        #     return np.random.choice(self.actions, p=action_evals)
         return np.argmax(action_evals)
     
     def play(self, env, x):

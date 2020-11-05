@@ -112,13 +112,17 @@ class Viewer(object):
         ax.set_ylabel('state')
         q_table = []
         for x in range(self.border + 1):
-            s = State(x)
+            s = State(x, self.border)
+            u = self.agent.q_func(s.vec)
+            # 確率値に変換
             q_table.append(
-                self.agent.q_func(s.val)
+                np.exp(u) / np.exp(u).sum()
             )
         q_table = np.vstack(q_table)
+        print(self.agent.q_func.Q)
+        print(q_table)
         im = ax.imshow(q_table, cmap=cm.RdYlGn, aspect='auto',
-                       vmax=abs(q_table).max(), vmin=-abs(q_table).max())
+                       vmax=abs(q_table).max(), vmin=0)
         fig.colorbar(im)
         ax.grid()
         ax.set_xticks(range(len(env.actions)))

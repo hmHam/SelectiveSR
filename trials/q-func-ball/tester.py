@@ -10,7 +10,7 @@ class Tester(object):
         self.agent = agent
         self.env = env
         self.logger = agent.logger
-        self.results = None
+        self.results = np.array([])
 
     def test(self, n=100, seed=0, trial_count=1, visual=True):
         '''結果を配列で返す'''
