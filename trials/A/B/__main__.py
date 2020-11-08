@@ -1,2 +1,3 @@
-print(__path__)
-print(__package__)
+import sys
+print(sys.path)
+print(sys.argv)
