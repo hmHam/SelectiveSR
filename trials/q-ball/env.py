@@ -80,10 +80,7 @@ class Env(object):
         diff = abs(self.target_num - n_state.x) - abs(self.target_num - state.x)
         if diff > 0:
             total += -3 * diff
-        # FIXME: ENDが全体的に評価高い -> 諦めずに頑張った方がいいと思ってほしい
-        if self.done and n_state.x != self.target_num:
-            return -2
-        elif self.done:
+        if self.done:
             # step_reward = 0.55 * (abs(self.target_num - n_state.x) - self.step_count)/self.target_num
             loss_reward = 2 * (self.border - abs(n_state.x - self.target_num))/self.border
             return loss_reward
@@ -92,9 +89,9 @@ class Env(object):
     def _move(self, state, action):
         # TODO: 
         ns = state.clone()
-        if state.x == self.target_num:
-            self.done = True
-            return ns
+        # if state.x == self.target_num:
+        #     self.done = True
+        #     return ns
         self.step_count += 1
         if action == Action.PLUS_ONE:
             Action.plus_one_action(ns)
@@ -108,11 +105,6 @@ class Env(object):
             # 値は変更しない
             Action.end_action(self)
             self.step_count -= 1
-        if ns.x == self.target_num:
-            self.done = True
-        # 範囲外に出たら終了
-        if ns.x > self.border or ns.x < 0:
-            self.done = True
         return ns
 
     def step(self, action):
@@ -120,5 +112,6 @@ class Env(object):
         # 100かAction.ENDをとる場合が終了条件
         next_state = self._move(state, action)
         reward = self.reward_func(state, next_state)
-        self.agent_state = next_state
-        return next_state, reward, self.done
+        # next_stateを0 - 10に丸める
+        self.agent_state = State(max(0, min(self.border, next_state.x)))
+        return self.agent_state, reward, self.done

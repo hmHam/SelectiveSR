@@ -46,10 +46,7 @@ class Env(object):
             total -= diff / self.border
         else:
             total += diff / self.border
-        # FIXME: ENDが全体的に評価高い -> 諦めずに頑張った方がいいと思ってほしい
-        if self.done and n_state.x != self.target_num:
-            return -3
-        elif self.done:
+        if self.done:
             loss_reward = (self.border - abs(n_state.x - self.target_num))/self.border
             return loss_reward
         return -0.05 + total

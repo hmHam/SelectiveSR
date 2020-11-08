@@ -80,10 +80,7 @@ class Env(object):
         diff = abs(self.target_num - n_state.x) - abs(self.target_num - state.x)
         if diff > 0:
             total += -3 * diff
-        # FIXME: ENDが全体的に評価高い -> 諦めずに頑張った方がいいと思ってほしい
-        if self.done and n_state.x != self.target_num:
-            return -2
-        elif self.done:
+        if self.done:
             # step_reward = 0.55 * (abs(self.target_num - n_state.x) - self.step_count)/self.target_num
             loss_reward = 2 * (self.border - abs(n_state.x - self.target_num))/self.border
             return loss_reward
