@@ -108,7 +108,7 @@ class Viewer(object):
         q_table = []
         for x in range(self.border + 1):
             s = State(x, self.border)
-            u = self.agent.q_func(s.vec)
+            u = self.agent.Q(s)
             q_table.append(u)
         q_table = np.vstack(q_table)
         print(q_table)

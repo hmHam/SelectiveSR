@@ -4,10 +4,11 @@ import numpy as np
 from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
 import japanize_matplotlib
 plt.style.use('ggplot')
+from env import State
 
 
 class Viewer(object):
-    def __init__(self, env, agent, tester, interval, TARGET_NUM):
+    def __init__(self, env, agent, interval, TARGET_NUM, tester=None):
         self.target_num = TARGET_NUM
         self.env = env
         self.agent = agent
@@ -17,10 +18,12 @@ class Viewer(object):
 
     def plot_result(self, log_path=''):
         fig1 = self.plot_train_result(log_path)
-        fig2 = self.plot_test_results(log_path)
+        if self.tester is not None:
+            fig2 = self.plot_test_results(log_path)
         if log_path:
             fig1.savefig(f'{log_path}/train_result.png')
-            fig2.savefig(f'{log_path}/test_result.png')
+            if self.tester is not None:
+                fig2.savefig(f'{log_path}/test_result.png')
         else:
             plt.show()
 
@@ -99,15 +102,11 @@ class Viewer(object):
 
     def _plot_q_value(self, env, ax, fig):
         '''学習したQ-tableの値を表示'''
-        # TODO:
-        #   * TARGET_NUMに水平線を引く
-        #   * メモリをきちんとつける
-        #   * set_xlabel, set_ylabelで状態, actionを示す
         ax.set_title('Value of Q-table')
         ax.axhline(y=self.target_num, xmin=0, xmax=len(env.actions) - 1)
         ax.set_xlabel('action')
         ax.set_ylabel('state')
-        q_table = np.array([self.agent.Q[k] for k in sorted(self.agent.Q)])
+        q_table = np.array([self.agent.Q(State(s, env.B)) for s in range(env.B + 1)])
         im = ax.imshow(q_table, cmap=cm.RdYlGn, aspect='auto',
                        vmax=q_table.max(), vmin=q_table.min())
         fig.colorbar(im)

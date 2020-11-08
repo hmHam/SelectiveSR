@@ -2,7 +2,7 @@ from datetime import datetime
 from pathlib import Path
 import inspect
 import json
-
+from env import State
 
 class Logger(object):
     def __init__(self, agent):
@@ -10,9 +10,8 @@ class Logger(object):
         self.reward_log = []
         self.step_count_log = []
         timestamp = datetime.now().strftime('%Y-%m-%d:%H:%M:%S')
-        self.log_dir = Path(__file__).parent.parent / f'logs/{timestamp}'
+        self.log_dir = Path(__file__).parent / 'logs' / timestamp
         self.log_dir.mkdir(exist_ok=True)
-
 
     def reset(self):
         self.reward_log = []
@@ -29,17 +28,18 @@ class Logger(object):
                 'size': test_reults.shape[0]
             }, f)
 
-    def save_figure(self, viewer):
+    def save_result(self, env):
         # 報酬関数のコードを保存
         with open(self.log_dir / 'func.txt', 'w') as f:
             f.write(
-                inspect.getsource(viewer.env.reward_func)
+                inspect.getsource(env.reward_func)
             )
 
         # Q値のログを保存
-        q_table = self.agent.q_func.Q.tolist()
+        q_table = [list(self.agent.Q(State(x, env.B))) for x in range(env.B + 1)]
         with open(self.log_dir / 'q_table.json', 'w') as f:
             json.dump(q_table, f)
 
+    def save_figure(self, viewer):
         # グラフを画像で保存
         viewer.plot_result(str(self.log_dir))
