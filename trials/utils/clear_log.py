@@ -13,6 +13,8 @@ def clear_log(target_dir, n=0):
 
     targets = list(log_path.glob('*'))
     exist_log_count = len(targets)
+    if n:
+        targets = targets[:-n]
     print(f'{len(targets)}件のログが存在します')
     while True:
         go_del = input('削除しますか? [y/n]')
@@ -28,7 +30,7 @@ def clear_log(target_dir, n=0):
     for p in targets:
         shutil.rmtree(p)
     print(f'{len(targets)}件削除しました')
-    remain_log_count = exist_log_count - n if exist_log_count > n else exist_log_count
+    remain_log_count = n if exist_log_count > n else exist_log_count
     print(f'残り{remain_log_count}件です')
 
 if __name__ == '__main__':

@@ -41,7 +41,6 @@ class Viewer(object):
         return fig
 
     def plot_train_result(self, log_path):
-        # レイアウトの作成
         fig = plt.figure(figsize=(20, 8))
         plt.subplots_adjust(hspace=0.6)
         gs_master = GridSpec(nrows=2, ncols=2, width_ratios=[1, 1])
@@ -102,10 +101,6 @@ class Viewer(object):
 
     def _plot_q_value(self, env, ax, fig):
         '''学習したQ-tableの値を表示'''
-        # TODO:
-        #   * TARGET_NUMに水平線を引く
-        #   * メモリをきちんとつける
-        #   * set_xlabel, set_ylabelで状態, actionを示す
         ax.set_title('Value of Q')
         ax.axhline(y=self.target_num, xmin=0, xmax=len(env.actions) - 1)
         ax.set_xlabel('action')
@@ -114,15 +109,11 @@ class Viewer(object):
         for x in range(self.border + 1):
             s = State(x, self.border)
             u = self.agent.q_func(s.vec)
-            # 確率値に変換
-            q_table.append(
-                np.exp(u) / np.exp(u).sum()
-            )
+            q_table.append(u)
         q_table = np.vstack(q_table)
-        print(self.agent.q_func.Q)
         print(q_table)
         im = ax.imshow(q_table, cmap=cm.RdYlGn, aspect='auto',
-                       vmax=abs(q_table).max(), vmin=0)
+                       vmax=q_table.max(), vmin=q_table.min())
         fig.colorbar(im)
         ax.grid()
         ax.set_xticks(range(len(env.actions)))
