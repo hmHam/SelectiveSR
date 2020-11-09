@@ -10,6 +10,7 @@ class Tester(object):
         self.border = BORDER
         self.agent = agent
         self.env = env
+        self.results = np.array([])
         self.logger = agent.logger
         self.results = None
 

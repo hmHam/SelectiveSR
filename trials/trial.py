@@ -49,7 +49,6 @@ TrainerClass = inspect.getmembers(
     import_module(f".trainers.{args.trainer}", package=args.package),
     lambda x: inspect.isclass(x) and is_concrete_class(x, 'Trainer')
 )[0][1]
-#[0][1]
 trainer = TrainerClass(env, agent, B)
 
 print('Agentの学習を開始します')
@@ -60,6 +59,7 @@ trainer.train(
 )
 
 # 本格テスト
+tester = None
 if args.test:
     tester = Tester(env, agent, T, B)
     print('Agentの学習結果を評価します')
@@ -78,5 +78,6 @@ viewer.plot_result()
 
 # ログ取り
 print('ロギングします')
-agent.logger.save_result(env)
-agent.logger.save_figure(viewer)
+agent.logger.save_result(env, trainer, viewer, args, tester=tester)
+
+print('Done')
