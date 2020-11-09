@@ -23,4 +23,6 @@ def get_parser():
     parser.add_argument('--episode_count', '-e', type=int, default=10000, help=f'学習するエピソード数')
     parser.add_argument('--epsilon', '-ep', type=float, default=0.2, help='ε-Greedy法のパラメータepsilon')
     parser.add_argument('--trainer', '-tr', default='q_learning', help='行動評価関数の更新方法')
+    parser.add_argument('--learning-rate', '-lr', default=0.1, type=float, help='学習率')
+    parser.add_argument('--gamma', '-g', default=0.9, type=float, help='割引率')
     return parser

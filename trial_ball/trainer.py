@@ -6,6 +6,9 @@ class Trainer(object):
         self.env = env
         self.agent = agent
 
+    def train(self):
+        raise NotImplementedError('plz implement train method')
+
     def progress_report(self, interval=100, episode=-1):
         '''学習の結果得られた報酬の履歴を可視化'''
         rewards = self.agent.logger.reward_log[-interval:]

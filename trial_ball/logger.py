@@ -32,7 +32,9 @@ class Logger(object):
             'seed': args.seed,
             'train_episode_count': args.episode_count,
             'epsilon': args.epsilon,
-            'train_method': args.trainer
+            'train_method': args.trainer,
+            'gamma': args.gamma,
+            'learning_rate': args.learning_rate,
         }
 
     def _get_test_result_num(self, test_results):

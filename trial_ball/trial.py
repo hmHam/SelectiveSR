@@ -56,6 +56,8 @@ trainer.train(
     episode_count=args.episode_count,
     report_interval=args.interval,
     verbose=args.verbose
+    learning_rate=args.learning_rate,
+    gamma=args.gamma
 )
 
 # 本格テスト
