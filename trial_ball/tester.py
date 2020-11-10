@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import japanize_matplotlib
-
+from env import State, Action
 
 class Tester(object):
     '''学習した結果を評価する'''
@@ -10,35 +10,41 @@ class Tester(object):
         self.border = BORDER
         self.agent = agent
         self.env = env
-        self.results = np.array([])
+        self.results = {}
         self.logger = agent.logger
         self.results = None
 
-    def test(self, n=100, seed=0, trial_count=1, visual=True):
-        '''結果を配列で返す'''
-        self.results = np.array([self.test_once(n, seed + t)['success'] for t in range(trial_count)])
-        self.logger.save_test_result(self.results)
-        return {
-            'size': n,
-            'results': self.results,
-        }
+    def test_act(self):
+        # 最適戦略を取れているかをチェック
+        for x in range(self.env.B + 1):
+            s = State(x, self.env.B)
+            print('state = %2d, opt_action = %s \t' % (x, Action.labels[np.argmax(self.agent.Q(s))]), self.agent.Q(s))
 
-    def test_once(self, n, seed):
+    def test_step_count(self, est=None):
         # 乱数の生成とその乱数に対する正解データの作成
-        np.random.seed(seed)
-        start_points = np.random.randint(0, self.border, n)
-        y = np.array(self._get_labels(start_points))
+        y = self._get_true_step_counts()
         # 学習したAgentでの結果を取得
-        est = np.array(self._get_estimates(self.agent, start_points))
+        if est is None:
+            est = self._get_estimates(self.agent)
+        if not isinstance(est, np.ndarray):
+            est = np.array(est)
         # 評価
-        return {
-            'size': n,
-            'success': (y == est).sum()
+        self.results = {
+            'true_step_counts': y.tolist(),
+            'est_step_counts': est.tolist(),
+            'n': self.env.B + 1,
+            'is_perfect': bool((y == est).mean()),
+            'fail_initial_state': np.arange(self.env.B + 1)[y != est].tolist()
         }
+        return self.results
 
-    def _get_labels(self, start_points):
-        start_points = list(start_points)
-        return [self._calc_min_step(s) for s in start_points]
+    def _get_true_step_counts(self):
+        return np.array([self._calc_min_step(s) for s in range(self.env.B + 1)])
+
+    def _get_estimates(self, agent):
+        '''エージェントに生成した乱数から推論させてかかったステップを記録'''
+        # NOTE: agentの行動選択はENDが入っているので1を引く
+        return np.array([agent.play(self.env, s)['step_count'] - 1 for s in range(self.env.B + 1)])
 
     def _calc_min_step(self, x):
         '''入力されたxに対する最小のステップ数を返す'''
@@ -65,7 +71,3 @@ class Tester(object):
                 (T - x // pow(2, t + 1)) + (t + 1)
             ])
         return 0
-
-    def _get_estimates(self, agent, start_points):
-        '''エージェントに生成した乱数から推論させてかかったステップを記録'''
-        return [agent.play(self.env, s)['step_count'] for s in start_points]

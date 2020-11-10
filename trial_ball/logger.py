@@ -2,6 +2,7 @@ from datetime import datetime
 from pathlib import Path
 import inspect
 import json
+import numpy as np
 from env import State
 
 class Logger(object):
@@ -36,12 +37,6 @@ class Logger(object):
             'gamma': args.gamma,
             'learning_rate': args.learning_rate,
         }
-
-    def _get_test_result_num(self, test_results):
-        return {
-            'mean': test_results.mean(),
-            'size': test_results.shape[0]
-        }
     
     def _save_reward_func(self, env):
         # 報酬関数のコードを保存
@@ -61,7 +56,7 @@ class Logger(object):
         context['trial_params'] = self._get_trial_params(args)
         context['q'] = self._get_state_evals(env)
         if tester is not None:
-            context['test_result_num'] = self._get_test_result_num(tester.results)
+            context['test_result_num'] = tester.results
 
         with open(self.log_dir / 'result.json', 'w') as f:
             json.dump(context, f, indent=2)

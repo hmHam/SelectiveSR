@@ -23,13 +23,16 @@ class Agent(object):
         done = False
         reward_sum = 0
         step_count = 0
+        path = []
         while not done:
             action = self.policy(state, play=True)
             n_state, reward, done = env.step(action)
+            path.append([state, action, reward, n_state])
             reward_sum += reward
             state = n_state
             step_count += 1
         return {
             'total_reward': reward_sum,
+            'path': path,
             'step_count': step_count
         }
