@@ -55,12 +55,17 @@ if args.play:
         step_counts.append(
             (x, result['step_count'])
         )
-    print('step_counts for each start point')
     tester = Tester(env, agent, T, B)
+    
+    print('-' * 10)
+    tester.test_act()
+    print()
+
+    print('step_counts for each start point')
     # NOTE: 最後のActionはENDなどで１引く
     tester.test_step_count(est=[e[1] - 1 for e in step_counts])
     for k, v in tester.results.items():
-        print(k, v)
+        print('\t', k, v)
     sys.exit(0)
 
 # Agentの選択
