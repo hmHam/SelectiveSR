@@ -43,6 +43,7 @@ if args.play:
     step_counts = []
     for x in range(B + 1):
         result = agent.play(env, x)
+        print('played')
         result['path'] = [[s.x, Action.labels[a], ns.x] for (s, a, r, ns) in result['path']]
         print('-' * 10)
         print(f'start x = {x}')
@@ -113,5 +114,6 @@ print('Done')
 
 # agentを保存
 with open('agent.pickle', 'wb') as f:
-    agent._Q = dict(agent._Q)
+    if isinstance(agent._Q, dict):
+        agent._Q = dict(agent._Q)
     pickle.dump(agent, f)

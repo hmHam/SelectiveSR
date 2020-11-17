@@ -28,9 +28,9 @@ class BallAgent(Agent):
     def Q(self, s, a=None):
         return self._Q(s)
 
-    def policy(self, s):
+    def policy(self, s, play=False):
         # e-Greedy法
-        if np.random.random() < self.epsilon:
+        if not play and np.random.random() < self.epsilon:
             return np.random.randint(self.env.action_num)
         action_evals = self.Q(s)
         if self.onPolicy:

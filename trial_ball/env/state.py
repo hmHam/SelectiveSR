@@ -22,3 +22,7 @@ class State(object):
             one_hot_x[self.x] = 1
         return one_hot_x
 
+    @property
+    def dim(self):
+        return len(self.vec)
+

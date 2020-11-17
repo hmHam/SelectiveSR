@@ -2,6 +2,11 @@ import numpy as np
 from .action import Action
 from .state import State
 
+'''
+Env
+  reward_func
+  step
+'''
 class Env(object):
     '''報酬を返す環境'''
 
@@ -20,6 +25,10 @@ class Env(object):
         self.done = False
         self.step_count = 0
         return self.agent_state
+    
+    @property
+    def state_dim(self):
+        return State(0, self.B).dim
 
     @property
     def actions(self):
