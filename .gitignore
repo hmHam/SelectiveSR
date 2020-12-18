@@ -1,3 +1,4 @@
+gym-results/
 deep-learning-from-scratch/dataset/*.pkl
 .DS_Store
 __pycache__/
@@ -5,3 +6,4 @@ __pycache__/
 logs/
 .swp
 .vscode/
+data/
