@@ -1,4 +1,6 @@
 import os
+import sys
+import json
 import argparse
 import pickle
 import numpy as np
@@ -32,6 +34,18 @@ class MnistNet(torch.nn.Module):
         return x, self.scale*x
     
 ### functions ###
+def augument_data(source):
+    data = []
+    for c in source:
+        data.extend([
+            c,
+            np.rot90(c, np.random.randint(1, 4)),
+            np.fliplr(c),
+            np.flipud(c)
+        ])
+    data = np.array(data)
+    return data
+
 def blur(x, kernel, c=3):
     for i in range(c):
         x = fftconvolve(x, kernel, mode='same')
@@ -70,7 +84,7 @@ def step(Qnet, s, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, device='cu
         a = np.random.randint(len(filt))
     else:
         with torch.no_grad():
-            _, q = Qnet(x.to(device))
+            q, _ = Qnet(x.to(device))
             q = q[0].to('cpu').detach().numpy()
         a = np.argmax(q)
     
@@ -98,6 +112,11 @@ def subhistory(Qnet, history, idx):
     r = torch.tensor(r).to(torch.float)
     return x, x_next, y, a, r
 
+def get_gauss_filt(sigma, size=5):
+    f = np.vectorize(lambda x, y: multivariate_normal([0.0, 0.0], sigma).pdf([x, y]))
+    X, Y = np.meshgrid(np.arange(-(size//2), size//2+1, 1, dtype=np.float32), np.arange(-(size//2), size//2+1, 1, dtype=np.float32))
+    kernel = f(X, Y)
+    return kernel / kernel.sum()
 
 ### train ###
 def train(channel=1, weight=0.0, outdir='./', gpu=0, seed=0):
@@ -108,35 +127,53 @@ def train(channel=1, weight=0.0, outdir='./', gpu=0, seed=0):
     os.makedirs(dn, exist_ok=True)
 
     # kernels
-    std = 3.0
-    f = np.vectorize(lambda x, y: multivariate_normal([0.0, 0.0], np.diag([std]*2)).pdf([x, y]))
-    X, Y = np.meshgrid(np.arange(-2, 3, 1, dtype=np.float32), np.arange(-2, 3, 1, dtype=np.float32))
-    kernel1 = f(X, Y)
-    kernel1 = kernel1 / kernel1.sum()
-    np.random.seed(0)
-    kernel2 = np.random.rand(*kernel1.shape)
-    kernel2 = kernel2 / kernel2.sum()
-
-    # filters
+    SIZE = 5
+    kernel1 = get_gauss_filt(np.diag([2.0**2]*2), size=SIZE)
+    kernel2 = get_gauss_filt(np.diag([10**2, 10**2]), size=SIZE)
+    kernel3 = get_gauss_filt(np.diag([16**2, 2**2]), size=SIZE)
+    # actions
     filt = []
     filt.append(lambda x: x)
-    filt.append(lambda x: np.maximum(0, fftconvolve(x, kernel1, mode='same')))
-    filt.append(lambda x: np.maximum(0, fftconvolve(x, kernel2, mode='same')))
     filt.append(lambda x: np.maximum(0, restoration.wiener(x, kernel1, 1e-2)))
     filt.append(lambda x: np.maximum(0, restoration.wiener(x, kernel2, 1e-2)))
+    filt.append(lambda x: np.maximum(0, restoration.wiener(x, kernel3, 1e-2)))
+    
+#     std = 3.0
+#     f = np.vectorize(lambda x, y: multivariate_normal([0.0, 0.0], np.diag([std]*2)).pdf([x, y]))
+#     X, Y = np.meshgrid(np.arange(-2, 3, 1, dtype=np.float32), np.arange(-2, 3, 1, dtype=np.float32))
+#     kernel1 = f(X, Y)
+#     kernel1 = kernel1 / kernel1.sum()
+#     np.random.seed(0)
+#     kernel2 = np.random.rand(*kernel1.shape)
+#     kernel2 = kernel2 / kernel2.sum()
+
+#     # filters
+#     filt = []
+#     filt.append(lambda x: x)
+# #     filt.append(lambda x: np.maximum(0, fftconvolve(x, kernel1, mode='same')))
+# #     filt.append(lambda x: np.maximum(0, fftconvolve(x, kernel2, mode='same')))
+#     filt.append(lambda x: np.maximum(0, restoration.wiener(x, kernel1, 1e-2)))
+#     filt.append(lambda x: np.maximum(0, restoration.wiener(x, kernel2, 1e-2)))
 
     # images
     data = datasets.MNIST(root='./data', train=True, download=True)
+    
+    n = 300
     np.random.seed(seed)
-    idx = np.random.choice(data.data.shape[0], 1000)
+    idx = np.random.choice(data.data.shape[0], n)
     imgs = data.data[idx].numpy() / 255
-    blurred_imgs = np.stack(list(map(lambda x: blur(x, kernel1, c=3), imgs)), axis=0)
+    imgs = augument_data(imgs)
+    np.random.shuffle(imgs)
+    blurred_imgs = np.stack([blur(img, kernel1, c=3) for img in imgs[:2*n]] + [blur(img, kernel2, c=3) for img in imgs[2*n:]], axis=0)
     imgs = torch.from_numpy(imgs).to(torch.float)
     blurred_imgs = torch.from_numpy(blurred_imgs).to(torch.float)
 
     # setup
     torch.manual_seed(seed)
     Qnet = MnistNet(c=channel, m=[20, 20, len(filt)]).to(device)
+    
+    # set parameters
+#     Qnet.load_state_dict(torch.load('withRandom/channel01_weight000_seed00/Qnet020000.pth'))
     loss_fn = torch.nn.MSELoss()
     loss_fn2 = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(Qnet.parameters(), lr=1e-3, momentum=0.9)
@@ -149,7 +186,8 @@ def train(channel=1, weight=0.0, outdir='./', gpu=0, seed=0):
     # training
     R = []
     history = []
-    for itr in range(20000):
+    TRIAL_NUM = 20000
+    for itr in range(TRIAL_NUM):
         np.random.seed(itr)
         for _ in range(20):
             Ri = 0
@@ -181,13 +219,13 @@ def train(channel=1, weight=0.0, outdir='./', gpu=0, seed=0):
             t = torch.tensor(t)
 
         x, q, t = x.to(device), q.to(device), t.to(device)
-        z, p = Qnet(x)
+        z, _ = Qnet(x)
         loss1 = 0
         for b in range(len(filt)):
             idx = np.where(a == b)[0]
             if idx.size == 0:
                 continue
-            loss1 = loss1 + loss_fn(p[idx, b], q[idx])
+            loss1 = loss1 + loss_fn(z[idx, b], q[idx])
         loss2 = loss_fn2(z, t)
         loss = loss1 + weight * loss2
         optimizer.zero_grad()
@@ -203,13 +241,26 @@ def train(channel=1, weight=0.0, outdir='./', gpu=0, seed=0):
 ### main ###
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Agent & Save')
+    parser.add_argument('--cond', default=False, type=bool, help='if you use condition file/(channel, weight, start, end)')
     parser.add_argument('--channel', default=1, type=int, help='number of channels')
     parser.add_argument('--weight', default=0, type=float, help='weight of loss2')
     parser.add_argument('--outdir', default='./', type=str, help='output directory')
     parser.add_argument('--start', default=0, type=int, help='start seed')
-    parser.add_argument('--end', default=0, type=int, help='end seed')
+    parser.add_argument('--end', default=1, type=int, help='end seed')
     parser.add_argument('--gpu', default=0, type=int, help='gpu index')
     args = parser.parse_args()
+    COND_FILENAME = 'conditions.json'
+    if args.cond:
+        assert os.path.exists(COND_FILENAME), f'{COND_FILENAME} is required'
+        
+        with open('conditions.json', 'r') as f:
+            cond = json.load(f)
+        for c in cond:
+            start = c['start'] if 'start' in c else args.start
+            end = c['end'] if 'end' in c else args.end
+            train(channel=c['channel'], wheight=c['weight'], outdir=c['outdir'], gpu=args.gpu, seed=0)
+        sys.exit(0)
+    # main flow
     assert args.channel in [1, 2]
     for seed in range(args.start, args.end):
         train(channel=args.channel, weight=args.weight, outdir=args.outdir, gpu=args.gpu, seed=seed)

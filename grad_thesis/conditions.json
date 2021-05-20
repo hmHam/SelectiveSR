@@ -1,0 +1,22 @@
+[
+  {
+    "channel": 1,
+    "weight": 0.0,
+    "outdir": "test"
+  },
+  {
+    "channel": 1,
+    "weight": 0.05,
+    "outdir": "test"
+  },
+  {
+    "channel": 2,
+    "weight": 0.0,
+    "outdir": "test"
+  },
+  {
+    "channel": 2,
+    "weight": 0.05,
+    "outdir": "test"
+  }
+]
