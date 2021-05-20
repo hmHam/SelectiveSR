@@ -7,3 +7,5 @@ logs/
 .swp
 .vscode/
 data/
+.python-version
+.workspace/
