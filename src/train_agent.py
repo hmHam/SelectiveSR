@@ -11,8 +11,6 @@ import torch
 from torch import nn
 from torch import optim
 
-from settings.shift_funcs import get_funcs
-
 
 def get_img(originals, deteriolated_imgs, channel=1):
     n = len(deteriolated_imgs)
@@ -21,34 +19,53 @@ def get_img(originals, deteriolated_imgs, channel=1):
     if channel == 1:
         x = x.unsqueeze(0).unsqueeze(0)
     elif channel == 2:
-        x = torch.cat([x, x], dim=0).unsqueeze(0)
+        x = torch.stack([x, x], dim=0).unsqueeze(0)
     return (x, y.unsqueeze(0))
 
 
 ### reinforcement learning ###
 # model #
+# class QNet(torch.nn.Module):
+#     def __init__(self, c=1, m=[20, 20, 5]):
+#         super(QNet, self).__init__()
+#         self.m = m
+#         self.conv = torch.nn.Sequential(
+#             torch.nn.Conv2d(c, self.m[0], 5, stride=1, padding=0),
+#             torch.nn.ReLU(),
+#             torch.nn.BatchNorm2d(m[0]),
+#             torch.nn.MaxPool2d(2, stride=2),
+#             torch.nn.Conv2d(self.m[0], self.m[1], 5, stride=1, padding=0),
+#             torch.nn.ReLU(),
+#             torch.nn.BatchNorm2d(m[1]),
+#             torch.nn.MaxPool2d(2, stride=2)
+#         )
+#         self.OH = 4
+#         self.OW = self.OH
+#         self.fc = torch.nn.Linear(self.OH*self.OW*self.m[1], m[2])
+#         self.scale = torch.nn.Parameter(torch.tensor(1.0))
+
+#     def forward(self, x):
+#         x = self.conv(x)
+#         x = x.view(-1, self.OH*self.OW*self.m[1])
+#         x = self.fc(x)
+#         return x, self.scale*x
+
+
 class QNet(torch.nn.Module):
     def __init__(self, c=1, m=[20, 20, 5]):
         super(QNet, self).__init__()
         self.m = m
-        self.conv = torch.nn.Sequential(
-            torch.nn.Conv2d(c, self.m[0], 5, stride=1, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.BatchNorm2d(m[0]),
-            torch.nn.MaxPool2d(2, stride=2),
-            torch.nn.Conv2d(self.m[0], self.m[1], 5, stride=1, padding=0),
-            torch.nn.ReLU(),
-            torch.nn.BatchNorm2d(m[1]),
-            torch.nn.MaxPool2d(2, stride=2)
-        )
-        self.OH = 4
-        self.OW = self.OH
-        self.fc = torch.nn.Linear(self.OH*self.OW*self.m[1], m[2])
+        self.conv1 = torch.nn.Conv2d(c, self.m[0], 5, stride=1, padding=0)
+        self.conv2 = torch.nn.Conv2d(self.m[0], self.m[1], 5, stride=1, padding=0)
+        self.fc = torch.nn.Linear(4*4*self.m[1], m[2])
         self.scale = torch.nn.Parameter(torch.tensor(1.0))
 
     def forward(self, x):
-        x = self.conv(x)
-        x = x.view(-1, self.OH*self.OW*self.m[1])
+        x = torch.nn.functional.relu(self.conv1(x))
+        x = torch.nn.functional.max_pool2d(x, 2, 2)
+        x = torch.nn.functional.relu(self.conv2(x))
+        x = torch.nn.functional.max_pool2d(x, 2, 2)
+        x = x.view(-1, 4*4*self.m[1])
         x = self.fc(x)
         return x, self.scale*x
     
@@ -109,10 +126,12 @@ def subhistory(Qnet, history, idx):
     
 ### train ###
 def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='./', gpu=0, seed=0):
+    # outdir 入力のパスは全て絶対パスで指定, 他の実験ディレクトリの中に出力できるようにするため
+    assert os.path.isabs(outdir), 'give me absolute path as outdir'
     device = 'cuda:%d' % (gpu,)
 
     # result directory & file
-    dn = '%schannel%02d_weight%03d_seed%02d' % (outdir, channel, int(100*weight), seed)
+    dn = os.path.join(outdir, 'channel%02d_weight%03d_seed%02d' % (channel, int(100*weight), seed))
     os.makedirs(dn, exist_ok=True)
 
     # setup
@@ -147,6 +166,7 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
         if len(history) < batch:
             continue
 
+        # update parameter
         with torch.no_grad():
             idx = np.random.choice(len(history), batch)
             x, x_next, y, a, r = subhistory(Qnet, history, idx)
@@ -179,11 +199,11 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
         loss.backward()
         optimizer.step()
 
-        # save
+        # save progress info
         if (itr+1) % FREQ == 0:
-            torch.save(Qnet.state_dict(), '%s/Qnet%06d.pth' % (dn, itr+1))
+            torch.save(Qnet.state_dict(), os.path.join(dn, 'Qnet%06d.pth' % (itr+1, )))
             print('iteration: ', itr+1)
-            with open('%s/reward.pkl' % (dn,), 'wb') as f:
+            with open(os.path.join(dn, 'reward.pkl'), 'wb') as f:
                 pickle.dump(R, f)
     print('trainning is done.')
 
@@ -191,32 +211,17 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
 ### main ###
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Agent & Save')
-#     parser.add_argument('--channel', default=1, type=int, help='number of channels')
-#     parser.add_argument('--weight', default=0, type=float, help='weight of loss2')
-#     parser.add_argument('--outdir', default='./', type=str, help='output directory')
+    parser.add_argument('--channel', default=1, type=int, help='number of channels')
+    parser.add_argument('--weight', default=0, type=float, help='weight of loss2')
+    parser.add_argument('--outdir', default='./', type=str, help='output directory')
     parser.add_argument('--start', default=0, type=int, help='start seed')
     parser.add_argument('--end', default=1, type=int, help='end seed')
     parser.add_argument('--gpu', default=0, type=int, help='gpu index')
     parser.add_argument('--setting', default=None, type=str, help='setting file')
     args = parser.parse_args()
     
-    if args.setting is None:
-        raise Exception('need setting')
-    setting = import_module(f'settings.{args.setting}')
-    channel = setting.CHANNEL
-    weight = setting.WEIGHT
-    outdir = setting.OUTDIR
-    
-    assert channel in [1, 2]
-    data = np.load('data/shift_dataset.npz')
-    train_dataset = data['train_dataset']
-    train_dataset = torch.from_numpy(train_dataset).to(torch.float)
-    original_dataset = data['original_dataset']
-    original_dataset = torch.from_numpy(original_dataset).to(torch.float)
-    
-    train_func_labels = data['train_func_labels']
-    funcs = [get_funcs(*delta) for delta in [(2, 2), (2, 0), (0, 2)]]
-    actions = [lambda x: x] + [f[1] for f in funcs]
+    assert args.channel in [1, 2]
+    # 入力の際は全て絶対パスで指定
     for seed in range(args.start, args.end):
         train(train_dataset, original_dataset, actions, channel=channel, weight=weight, outdir=outdir, gpu=args.gpu, seed=seed)
         

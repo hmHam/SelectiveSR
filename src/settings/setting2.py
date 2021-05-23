@@ -1,3 +1,0 @@
-CHANNEL = 1
-WEIGHT = 0.05
-OUTDIR = "results/ch1w005"

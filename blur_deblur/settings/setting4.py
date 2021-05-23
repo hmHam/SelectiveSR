@@ -1,0 +1,3 @@
+CHANNEL = 2
+WEIGHT = 0.05
+OUTDIR = "results/ch2w005"
