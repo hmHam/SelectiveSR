@@ -141,7 +141,6 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
     loss_fn2 = torch.nn.CrossEntropyLoss()
     optimizer = torch.optim.SGD(Qnet.parameters(), lr=1e-3, momentum=0.9)
 
-    print('preparation is done.')
     # parameters
     eps = 0.1
     gamma = 0.9
@@ -202,9 +201,10 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
         # save progress info
         if (itr+1) % FREQ == 0:
             torch.save(Qnet.state_dict(), os.path.join(dn, 'Qnet%06d.pth' % (itr+1, )))
-            print('iteration: ', itr+1)
+            print('iteration: ', itr+1, end='/')
             with open(os.path.join(dn, 'reward.pkl'), 'wb') as f:
                 pickle.dump(R, f)
+    print()
     print('trainning is done.')
 
     
