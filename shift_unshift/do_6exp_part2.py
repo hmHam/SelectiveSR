@@ -14,7 +14,7 @@ from src import *
 from importlib import import_module
 import numpy as np
 import torch
-from settings.shift_funcs import get_funcs
+from shift_funcs import get_funcs
 
 shift_len = [1,]
 data_file = ['diag_dataset.npz', 'diag_hori_dataset.npz', 'diag_vert_dataset.npz']

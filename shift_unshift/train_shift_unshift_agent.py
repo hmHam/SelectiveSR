@@ -12,7 +12,7 @@ import argparse
 import numpy as np
 import torch
 
-from settings.shift_funcs import get_funcs
+from shift_funcs import get_funcs
 
 def train_shift_unshift():
     pass
@@ -31,7 +31,7 @@ if __name__ == '__main__':
     # channel, weight
     if args.setting is None:
         raise Exception('you need setting.')
-    setting = import_module(f'settings.{args.setting}')
+    setting = getattr(settings, f'{args.setting}')
     channel = setting.CHANNEL
     weight = setting.WEIGHT
     
