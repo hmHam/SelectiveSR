@@ -23,7 +23,6 @@ def get_img(originals, deteriolated_imgs, channel=1):
     return (x, y.unsqueeze(0))
 
 
-### reinforcement learning ###
 # model #
 # class QNet(torch.nn.Module):
 #     def __init__(self, c=1, m=[20, 20, 5]):
