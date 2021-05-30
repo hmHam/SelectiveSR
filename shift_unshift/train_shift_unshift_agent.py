@@ -1,5 +1,6 @@
 import sys
 import os
+import re
 sys.path.append(
     os.path.dirname(os.path.abspath(os.path.dirname(__file__)))
 )
@@ -12,10 +13,7 @@ import argparse
 import numpy as np
 import torch
 
-from shift_funcs import get_funcs
-
-def train_shift_unshift():
-    pass
+from shift_funcs import FUNCS_INVERT, FUNCS_IRREV, ACTIONS_INVERT, ACTIONS_IRREV
 
 
 if __name__ == '__main__':
@@ -24,8 +22,9 @@ if __name__ == '__main__':
     parser.add_argument('--end', default=1, type=int, help='end seed')
     parser.add_argument('--gpu', default=0, type=int, help='gpu index')
     parser.add_argument('--setting', default=None, type=str, help='setting file')
-    parser.add_argument('--shift-len', default=None, type=int, help='shift length')
-    parser.add_argument('--data-file', default=None, type=str, help='dataset file')
+    parser.add_argument('--type', default=None, type=str, help='u d l r')
+    parser.add_argument('--data-dir', default=None, type=str, help='data-dirが--typeと異なる時は指定する')
+    parser.add_argument('--outdir', default=None, type=str, help='outdirが--typeと異なる時は指定する')
     args = parser.parse_args()
     
     # channel, weight
@@ -37,61 +36,72 @@ if __name__ == '__main__':
     
     assert channel in [1, 2]
             
-    ### 出力先
-    if args.shift_len is None:
-        raise Exception('you need shift length.')     
-    SL = args.shift_len
-    ### 訓練データ
-    if args.data_file is None:
-        raise Exception('require data dir.')
+    ### data path & result path
+    data_dir = 'data/%s' % (args.type if args.data_dir is None else args.data_dir)
+    train_path = os.path.join(data_dir, 'train_dataset.npz')
+    test_path = os.path.join(data_dir, 'test_dataset.npz')
 
-    outdir = os.path.join('shift%d' % SL, args.data_file.split('dataset')[0].strip('_'))
-    outdir = os.path.join(os.path.abspath('results'), outdir)
+    outdir = os.path.abspath('results/%s' % (args.type if args.outdir is None else args.outdir))
 
     ### 訓練データ
-    data = np.load(os.path.join('data', 'shift%d' % SL, args.data_file))
-    train_dataset = data['train_dataset']
-    train_dataset = torch.from_numpy(train_dataset).to(torch.float)
-    original_dataset = data['original_dataset']
-    original_dataset = torch.from_numpy(original_dataset).to(torch.float)
-#     train_func_labels = data['train_func_labels'] # 使わない
-
+    train_dataset = np.load(train_path)
+    Dy = train_dataset['train_dataset']
+    Dy = torch.from_numpy(Dy).to(torch.float)
+    Dx = train_dataset['original_dataset']
+    Dx = torch.from_numpy(Dx).to(torch.float)
+    # 訓練時に使用した関数とスクリプトで指定したtypeの整合性
+    train_labels = set(train_dataset['train_func_labels'])  # 訓練時に使用した関数
+    types = {['u', 'd', 'l', 'r'].index(k) for k in re.sub('\d', '', (args.type if args.data_dir is None else args.data_dir).split('_')[0])}
+    if train_labels != types:
+        print('指定した train_dataset', data_dir, 'train_dataset.npz')
+        print('type', args.type)
+        raise ValueError('typeとデータセット対応してない')
     ### Actionの候補
-    funcs = [get_funcs(*delta) for delta in [
-        (SL, SL),
-        (SL, -SL),
-        (-SL, SL),
-        (-SL, -SL),
-    ]]
-    actions = [lambda x: x] + [f[1] for f in funcs]
+    if args.type.split('_')[-1] == 'invert':
+        funcs = FUNCS_INVERT
+        actions = [lambda x: x] + ACTIONS_INVERT
+    else:
+        funcs = FUNCS_IRREV
+        actions = [lambda x: x] + ACTIONS_IRREV
+    trial_num = 20000
     
-    ### train
-    for seed in range(args.start, args.end):
-        train(train_dataset, original_dataset, actions, channel=channel, weight=weight, outdir=outdir, gpu=args.gpu, seed=seed)
-        
-                
-#     # metrics and save
-#     test_context = np.load(
-#         os.path.join('data', 'shift%d' % SL, 'test_dataset.npz')
-#     )
-#     test_dataset = torch.from_numpy(test_context['test_dataset']).to(device)
-#     test_origin = torch.from_numpy(test_context['original_dataset']).to(device)
+    # テストデータ
+    # device = 'cuda:%d' % args.gpu
+    test_context = np.load(test_path)
+    test_Dy = torch.from_numpy(test_context['test_dataset'])
+    test_Dx = torch.from_numpy(test_context['original_dataset'])
+    test_labels = set(test_context['test_func_labels'])
+    if types != test_labels:
+        print('指定した test_dataset', data_dir, 'test_dataset.npz')
+        print('type', args.type)
+        raise ValueError('typeとデータセット対応してない')
 
-#     result_path = os.path.join(
-#         outdir,
-#         'channel%02d_weight%03d_seed%02d' % (channel, int(100*weight), seed)
-#     )
-#     print('result_path', result_path)
-#     # 訓練済みモデルをロード
-#     Qnet = QNet(c=channel, m=[20, 20, len(actions)]).to(device)
-#     Qnet.load_state_dict(torch.load(
-#          os.path.join(result_path, 'Qnet020000.pth')
-#     ))
-#     metrics = agent_metrics(test_dataset, test_origin, Qnet, actions, channel=channel, gpu=device)
-#     np.savez(
-#         os.path.join(result_path, 'metrics.npz'),
-#         took_actions=metrics[:, :-1],
-#         mse=metrics[:, -1]
-#     )
-#     print('metric end')
+    ### 使用したtrain datasetとtest_datasetをtxtに記録する。
+    os.makedirs(outdir, exist_ok=True)
+    with open(os.path.join(outdir, 'data_info.txt'), 'w') as f:
+        f.write(f'train_dataset:, {train_path}\n')
+        f.write(f'test_dataset:, {test_path}\n')
+    ### train agent
+    for seed in range(args.start, args.end):
+        train(Dy, Dx, actions, channel=channel, weight=weight, trial_num=trial_num, outdir=outdir, gpu=args.gpu, seed=seed)
+                
+    # test 
+    for seed in range(args.start, args.end):
+        print('saving metrics...')
+        print('seed', seed)
+        result_path = os.path.join(
+            outdir,
+            'channel%02d_weight%03d_seed%02d' % (channel, int(100*weight), seed)
+        )
+        print('result_path', result_path)
+        Qnet = QNet(c=channel, m=[20, 20, len(actions)]).to(device)
+        Qnet.load_state_dict(torch.load(
+            os.path.join(result_path, 'Qnet0%d.pth' % trial_num)
+        ))
+        metrics = agent_metrics(test_Dy, test_Dx, Qnet, actions, channel=channel)
+        np.save(
+            os.path.join(result_path, 'metrics.npz'),
+            metrics
+        )
+        print('metric end')
 

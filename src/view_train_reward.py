@@ -2,7 +2,7 @@ import os
 import pickle
 import numpy as np
 
-def moving_average(r, n=100):
+def moving_average(r, n):
     ret = np.cumsum(r)
     ret[n:] = ret[n:] - ret[:-n]
     moving_average = ret[n - 1:] / n

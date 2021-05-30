@@ -79,12 +79,17 @@ def next_state(s, a, filt, channel):
     return (x_next, y)
 
 
-def reward(s, s_next, a):
+# def reward(s, s_next, a):
+#     x_next, y = s_next
+#     return - torch.mean((x_next[0, 0] - y[0, 0])**2).item()
+
+# NOTE: 元の報酬関数を、ステップ数が後半であるほど高い値を与えるよう重みづけした。
+def reward(s, s_next, a, t, T):
     x_next, y = s_next
-    return - torch.mean((x_next[0, 0] - y[0, 0])**2).item()
+    return - torch.mean((x_next[0, 0] - y[0, 0])**2).item() * t / (2 * T)
 
 
-def step(Qnet, s, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, device='cuda:0'):
+def step(Qnet, s, t, T, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, device='cuda:0'):
     x, y = s
     
     # action -- eps greedy
@@ -100,32 +105,31 @@ def step(Qnet, s, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, device='cu
     # reward
     with torch.no_grad():
         s_next = next_state(s, a, filt, channel)
-        r_next = reward(s, s_next, a)
+        r = reward(s, s_next, a, t, T)
     
-    history.append((s, s_next, a, r_next))
-    return s_next, r_next, history
+    history.append((s, s_next, a, r))
+    return s_next, r, history
 
 
 def subhistory(Qnet, history, idx):
-    x, x_next, y, a, r = [], [], [], [], []
+    xN, x_nextN, yN, aN, rN = [], [], [], [], []
     for i in idx:
-        s, s_next, b, r_next = history[i]
-        x.append(s[0])
-        x_next.append(s_next[0])
-        y.append(s[1])
-        a.append(b)
-        r.append(r_next)
-    x = torch.cat(x, dim=0)
-    x_next = torch.cat(x_next, dim=0)
-    y = torch.cat(y, dim=0)
-    a = np.array(a)
-    r = torch.tensor(r).to(torch.float)
-    return x, x_next, y, a, r
+        s, s_next, b, r = history[i]
+        xN.append(s[0])
+        x_nextN.append(s_next[0])
+        yN.append(s[1])
+        aN.append(b)
+        rN.append(r)
+    xN = torch.cat(xN, dim=0)
+    x_nextN = torch.cat(x_nextN, dim=0)
+    yN = torch.cat(yN, dim=0)
+    aN = np.array(aN)
+    rN = torch.tensor(rN).to(torch.float)
+    return xN, x_nextN, yN, aN, rN
 
     
 ### train ###
-def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='./', gpu=0, seed=0):
-    # outdir 入力のパスは全て絶対パスで指定, 他の実験ディレクトリの中に出力できるようにするため
+def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='./', trial_num=20000, gpu=0, seed=0):
     assert os.path.isabs(outdir), 'give me absolute path as outdir'
     device = 'cuda:%d' % (gpu,)
 
@@ -144,11 +148,12 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
     eps = 0.1
     gamma = 0.9
     batch = 50
+    T = 5
 
     # training
     R = []
     history = []
-    TRIAL_NUM = 20000
+    TRIAL_NUM = trial_num
     FREQ = 500
     print('start trainning...')
     for itr in range(TRIAL_NUM):
@@ -156,8 +161,8 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
         for _ in range(20):
             Ri = 0
             s = get_img(original, deteriolated_data, channel)
-            for i in range(5):
-                s, r, history = step(Qnet, s, history, actions, channel, gamma=gamma, eps=eps, device=device)
+            for i in range(T):
+                s, r, history = step(Qnet, s, i+1, T, history, actions, channel, gamma=gamma, eps=eps, device=device)
                 Ri = Ri + r
             R.append(Ri)
 
@@ -200,7 +205,7 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
         # save progress info
         if (itr+1) % FREQ == 0:
             torch.save(Qnet.state_dict(), os.path.join(dn, 'Qnet%06d.pth' % (itr+1, )))
-            print('iteration: ', itr+1, end='/')
+            print('iteration: ', itr+1, flush=True)
             with open(os.path.join(dn, 'reward.pkl'), 'wb') as f:
                 pickle.dump(R, f)
     print()

@@ -30,7 +30,7 @@ class Agent(object):
                 y, z = feature.squeeze(0)
                 z = self.actions[a](z)
                 feature = torch.stack([y, z]).unsqueeze(0)
-        return feature, took_actions
+        return feature if self.channel == 1 else feature[0][1], took_actions
     
     
 def agent_metrics(test_dataset, origin, Qnet, action_candidates, channel=1, outdir=None, N=10000):
