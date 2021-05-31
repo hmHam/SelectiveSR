@@ -45,10 +45,10 @@ if __name__ == '__main__':
 
     ### 訓練データ
     train_dataset = np.load(train_path)
-    Dy = train_dataset['train_dataset']
-    Dy = torch.from_numpy(Dy).to(torch.float)
-    Dx = train_dataset['original_dataset']
-    Dx = torch.from_numpy(Dx).to(torch.float)
+    train_Dy = train_dataset['train_dataset']
+    train_Dy = torch.from_numpy(train_Dy).to(torch.float)
+    train_Dx = train_dataset['original_dataset']
+    train_Dx = torch.from_numpy(train_Dx).to(torch.float)
     # 訓練時に使用した関数とスクリプトで指定したtypeの整合性
     train_labels = set(train_dataset['train_func_labels'])  # 訓練時に使用した関数
     types = {['u', 'd', 'l', 'r'].index(k) for k in re.sub('\d', '', (args.type if args.data_dir is None else args.data_dir).split('_')[0])}
@@ -57,7 +57,7 @@ if __name__ == '__main__':
         print('type', args.type)
         raise ValueError('typeとデータセット対応してない')
     ### Actionの候補
-    if args.type.split('_')[-1] == 'invert':
+    if 'invert' in data_dir:
         funcs = FUNCS_INVERT
         actions = [lambda x: x] + ACTIONS_INVERT
     else:
@@ -83,7 +83,7 @@ if __name__ == '__main__':
         f.write(f'test_dataset:, {test_path}\n')
     ### train agent
     for seed in range(args.start, args.end):
-        train(Dy, Dx, actions, channel=channel, weight=weight, trial_num=trial_num, outdir=outdir, gpu=args.gpu, seed=seed)
+        train(train_Dy, train_Dx, actions, channel=channel, weight=weight, trial_num=trial_num, outdir=outdir, gpu=args.gpu, seed=seed)
                 
     # test 
     for seed in range(args.start, args.end):
@@ -94,13 +94,14 @@ if __name__ == '__main__':
             'channel%02d_weight%03d_seed%02d' % (channel, int(100*weight), seed)
         )
         print('result_path', result_path)
-        Qnet = QNet(c=channel, m=[20, 20, len(actions)]).to(device)
+        Qnet = QNet(c=channel, m=[20, 20, len(actions)])
         Qnet.load_state_dict(torch.load(
             os.path.join(result_path, 'Qnet0%d.pth' % trial_num)
         ))
         metrics = agent_metrics(test_Dy, test_Dx, Qnet, actions, channel=channel)
+        mse = metrics[:, -1].mean()
         np.save(
-            os.path.join(result_path, 'metrics.npz'),
+            os.path.join(result_path, f'metrics{int(1000*mse):03d}'),
             metrics
         )
         print('metric end')
