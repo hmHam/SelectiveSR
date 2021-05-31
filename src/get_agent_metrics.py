@@ -1,7 +1,7 @@
 ### 学習済みのagentに対してテストデータに対する復元結果のMSEを評価する。
 import torch
 import numpy as np
-from tqdm.notebook import tqdm
+from tqdm import tqdm
 
 class Agent(object):
     def __init__(self, Qnet, actions, channel):

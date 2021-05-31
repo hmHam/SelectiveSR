@@ -10,12 +10,13 @@ from importlib import import_module
 import torch
 from torch import nn
 from torch import optim
+from .wrap_func import dilig
 
 
-def get_img(originals, deteriolated_imgs, channel=1):
+def get_img(Dx, deteriolated_imgs, channel=1):
     n = len(deteriolated_imgs)
     i = np.random.choice(n)
-    y, x = originals[i], deteriolated_imgs[i]
+    y, x = Dx[i], deteriolated_imgs[i]
     if channel == 1:
         x = x.unsqueeze(0).unsqueeze(0)
     elif channel == 2:
@@ -83,13 +84,35 @@ def next_state(s, a, filt, channel):
 #     x_next, y = s_next
 #     return - torch.mean((x_next[0, 0] - y[0, 0])**2).item()
 
-# NOTE: 元の報酬関数を、ステップ数が後半であるほど高い値を与えるよう重みづけした。
-def reward(s, s_next, a, t, T):
+def reward(s, s_next, a):
     x_next, y = s_next
-    return - torch.mean((x_next[0, 0] - y[0, 0])**2).item() * t / (2 * T)
+    return torch.sum((x_next[0, 0] * y[0, 0])).item()
 
+# NOTE: 元の報酬関数を、ステップ数が後半であるほど高い値を与えるよう重みづけした。
+# WARNING: ↑これは全く必要ない工夫。なぜならAgentのアウトプットのMSEが小さければ
+#          途中で何を選んだかなんて何も関係ない。
+#          想定通りの行動を選択して欲しいのは、実験をする側の都合
+#          想定通りに動作するように実験の問題の方を修正する必要がある。
+# def get_dxdy(sl, j):
+#     return [(0, sl), (0, -sl), (-sl, 0), (sl, 0)][j]
 
-def step(Qnet, s, t, T, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, device='cuda:0'):
+# ### シフト幅reward
+# def reward(s, s_next, a):
+#     x_next, y = s_next
+#     min_sl = 0
+#     min_mse = torch.mean((x_next[0, 0] - y[0, 0])**2).item()
+#     for i in range(1, 15):  # シフト数
+#         for j in range(4):  # 上下左右
+#             o = x_next[0, 0].clone()
+#             dx, dy = get_dxdy(i, j)
+#             o = dilig(lambda A: np.roll(A, (dy, dx), axis=(0, 1)))(o)
+#             mse = torch.mean((o - y[0, 0])**2).item()
+#             if mse < min_mse:
+#                 min_mse = mse
+#                 min_sl = i
+#     return - min_sl
+
+def step(Qnet, s, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, device='cuda:0'):
     x, y = s
     
     # action -- eps greedy
@@ -105,7 +128,7 @@ def step(Qnet, s, t, T, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, devi
     # reward
     with torch.no_grad():
         s_next = next_state(s, a, filt, channel)
-        r = reward(s, s_next, a, t, T)
+        r = reward(s, s_next, a)
     
     history.append((s, s_next, a, r))
     return s_next, r, history
@@ -129,7 +152,7 @@ def subhistory(Qnet, history, idx):
 
     
 ### train ###
-def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='./', trial_num=20000, gpu=0, seed=0):
+def train(Dy, Dx, actions, channel=1, weight=0.0, outdir='./', trial_num=20000, gpu=0, seed=0):
     assert os.path.isabs(outdir), 'give me absolute path as outdir'
     device = 'cuda:%d' % (gpu,)
 
@@ -160,9 +183,9 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
         np.random.seed(itr)
         for _ in range(20):
             Ri = 0
-            s = get_img(original, deteriolated_data, channel)
+            s = get_img(Dx, Dy, channel)
             for i in range(T):
-                s, r, history = step(Qnet, s, i+1, T, history, actions, channel, gamma=gamma, eps=eps, device=device)
+                s, r, history = step(Qnet, s, history, actions, channel, gamma=gamma, eps=eps, device=device)
                 Ri = Ri + r
             R.append(Ri)
 
@@ -210,22 +233,3 @@ def train(deteriolated_data, original, actions, channel=1, weight=0.0, outdir='.
                 pickle.dump(R, f)
     print()
     print('trainning is done.')
-
-    
-### main ###
-if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='Train Agent & Save')
-    parser.add_argument('--channel', default=1, type=int, help='number of channels')
-    parser.add_argument('--weight', default=0, type=float, help='weight of loss2')
-    parser.add_argument('--outdir', default='./', type=str, help='output directory')
-    parser.add_argument('--start', default=0, type=int, help='start seed')
-    parser.add_argument('--end', default=1, type=int, help='end seed')
-    parser.add_argument('--gpu', default=0, type=int, help='gpu index')
-    parser.add_argument('--setting', default=None, type=str, help='setting file')
-    args = parser.parse_args()
-    
-    assert args.channel in [1, 2]
-    # 入力の際は全て絶対パスで指定
-    for seed in range(args.start, args.end):
-        train(train_dataset, original_dataset, actions, channel=channel, weight=weight, outdir=outdir, gpu=args.gpu, seed=seed)
-        
