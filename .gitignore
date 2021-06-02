@@ -10,3 +10,4 @@ data/
 results/
 .python-version
 .workspace/
+nohup.out
