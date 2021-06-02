@@ -50,3 +50,17 @@ FUNCS_IRREV = [
 ACTIONS_IRREV = [
     dilig(lambda A, dx=dx, dy=dy: shift(A, dx, dy)) for dx, dy in [(0, 2), (0, -2), (-2, 0), (2, 0)]
 ]
+
+# テスト用の対角要素も含んだ変換の候補
+FUNCS_DIAG = [
+    dilig(lambda A, dx=dx, dy=dy: np.roll(A, (dy, dx), axis=(0, 1))) for dx, dy in [
+        (0, S),(0, -S),(-S, 0),(S, 0), (S, S),(-S, -S),(S, -S), (-S, S)
+    ]
+]
+
+# 増やしていく行動集合
+np.random.seed(0)
+n = 50
+ACTIONS_DISASTER = ACTIONS_INVERT + [
+    dilig(lambda A, dx=dx, dy=dy: np.roll(A, (dy, dx), axis=(0, 1))) for dx, dy in np.random.randint(3, 10, (n, 2))
+]
