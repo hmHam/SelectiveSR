@@ -11,18 +11,19 @@ import argparse
 import numpy as np
 import torch
 
-from blur_funcs import FUNCS_GR, ACTIONS_GR, FUNCS_RN, ACTIONS_RN
+from data import blur_funcs
+# from blur_funcs import FUNCS_GR, ACTIONS_GR, FUNCS_RN, ACTIONS_RN
 
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Agent & Save')
-    parser.add_argument('--actions-type', default='GR', type=str, help='what type of actions')
-
+    parser.add_argument('--actions-type', default='GR', type=str, help='GR, WO_RN_BLUR, RN')
     parser.add_argument('--start', default=0, type=int, help='start seed')
     parser.add_argument('--end', default=1, type=int, help='end seed')
     parser.add_argument('--gpu', default=0, type=int, help='gpu index')
     parser.add_argument('--setting', default=1, type=int, help='setting file')
-    parser.add_argument('--data-file', default=None, type=str, help='dataset file')
+    parser.add_argument('--data-file', default=None, type=str, help='train data_file/train_gauss_dataset.npz, train_with_random_dataset.npz, train_random_dataset.npz')
+    parser.add_argument('--outdir', required=True, type=str, help='outdir')
     args = parser.parse_args()
     
     # channel, weight
@@ -37,8 +38,8 @@ if __name__ == '__main__':
     if args.data_file is None:
         raise Exception('require data dir.')
 
-    outdir = os.path.join(args.actions_type, args.data_file.split('dataset')[0].strip('_'))
-    outdir = os.path.join(os.path.abspath('results'), outdir)
+    # outdir = os.path.join(args.actions_type, args.data_file.split('dataset')[0].strip('_'))
+    outdir = os.path.join(os.path.abspath('results'), args.outdir)
 
     ### 訓練データ
     data = np.load(os.path.join('data', 'GR', args.data_file))
@@ -48,9 +49,9 @@ if __name__ == '__main__':
     original_dataset = torch.from_numpy(original_dataset).to(torch.float)
 
     ### Actionの候補
-    funcs = FUNCS_RN
-    actions = [lambda x: x] + ACTIONS_RN
-    
+    funcs = getattr(blur_funcs, f'FUNCS_{args.actions_type}')
+    actions = [lambda x: x] + getattr(blur_funcs, f'ACTIONS_{args.actions_type}')
+    print(outdir)
     ### train
     for seed in range(args.start, args.end):
         train(train_dataset, original_dataset, actions, channel=channel, weight=weight, outdir=outdir, gpu=args.gpu, seed=seed)
