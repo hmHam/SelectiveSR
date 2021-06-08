@@ -11,18 +11,51 @@ import argparse
 import numpy as np
 import torch
 
-from blur_funcs import FUNCS_GR, ACTIONS_GR, FUNCS_RN, ACTIONS_RN
+from data import blur_funcs
+# from blur_funcs import FUNCS_GR, ACTIONS_GR, FUNCS_RN, ACTIONS_RN
 
+
+def augument_data(Dy, Dx, seed=0):
+    np.random.seed(seed)
+    N = Dy.shape[0]
+    thetaN = np.random.randint(1, 4, N)
+    Dy_augumented = []
+    Dx_augumented = []
+    for n in range(Dy.shape[0]):
+        yn = Dy[n]
+        theta = thetaN[n]
+
+        Dy_new = [
+            yn,
+            np.rot90(yn, theta),
+            np.fliplr(yn),
+            np.flipud(yn)                
+        ]
+        Dy_augumented.extend(Dy_new)
+
+        xn = Dx[n]
+        Dx_new = [
+            xn,
+            np.rot90(xn, theta),
+            np.fliplr(xn),
+            np.flipud(xn)
+        ]
+        Dx_augumented.extend(Dx_new)
+    Dy_augumented = np.array(Dy_augumented, dtype=Dy.dtype)
+    Dx_augumented = np.array(Dx_augumented, dtype=Dx.dtype)
+    return Dy_augumented, Dx_augumented
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Train Agent & Save')
-    parser.add_argument('--actions-type', default='GR', type=str, help='what type of actions')
-
+    parser.add_argument('--actions-type', default='GR', type=str, help='GR, WO_RN_BLUR, RN')
     parser.add_argument('--start', default=0, type=int, help='start seed')
     parser.add_argument('--end', default=1, type=int, help='end seed')
     parser.add_argument('--gpu', default=0, type=int, help='gpu index')
     parser.add_argument('--setting', default=1, type=int, help='setting file')
-    parser.add_argument('--data-file', default=None, type=str, help='dataset file')
+    parser.add_argument('--data-file', default=None, type=str, help='train data_file/train_gauss_dataset.npz, train_with_random_dataset.npz, train_random_dataset.npz')
+    parser.add_argument('--outdir', required=True, type=str, help='outdir')
+    parser.add_argument('--augument', type=bool, default=False)
+    parser.add_argument('--trial-num', type=int, default=20000)
     args = parser.parse_args()
     
     # channel, weight
@@ -37,20 +70,25 @@ if __name__ == '__main__':
     if args.data_file is None:
         raise Exception('require data dir.')
 
-    outdir = os.path.join(args.actions_type, args.data_file.split('dataset')[0].strip('_'))
-    outdir = os.path.join(os.path.abspath('results'), outdir)
+    # outdir = os.path.join(args.actions_type, args.data_file.split('dataset')[0].strip('_'))
+    outdir = os.path.join(os.path.abspath('results'), args.outdir)
 
     ### 訓練データ
-    data = np.load(os.path.join('data', 'GR', args.data_file))
-    train_dataset = data['train_dataset']
-    train_dataset = torch.from_numpy(train_dataset).to(torch.float)
-    original_dataset = data['original_dataset']
-    original_dataset = torch.from_numpy(original_dataset).to(torch.float)
+    data = np.load(os.path.join('data', args.data_file))
+    Dy = data['train_dataset']
+    Dx = data['original_dataset']
+    if args.augument:
+        Dy, Dx = augument_data(Dy, Dx)
+    print('Data size after augmentation = ', Dy.shape[0])
+
+    Dy = torch.from_numpy(Dy).to(torch.float)
+    Dx = torch.from_numpy(Dx).to(torch.float)
 
     ### Actionの候補
-    funcs = FUNCS_RN
-    actions = [lambda x: x] + ACTIONS_RN
-    
+    # funcs = getattr(blur_funcs, f'FUNCS_{args.actions_type}')
+    actions = [lambda x: x] + getattr(blur_funcs, f'ACTIONS_{args.actions_type}')
+    print(len(actions))
+    print(outdir)
     ### train
     for seed in range(args.start, args.end):
-        train(train_dataset, original_dataset, actions, channel=channel, weight=weight, outdir=outdir, gpu=args.gpu, seed=seed)
+        train(Dy, Dx, actions, channel=channel, weight=weight, outdir=outdir, trial_num=args.trial_num, gpu=args.gpu, seed=seed)

@@ -6,6 +6,7 @@ from numpy.fft import fftshift, fft2
 from scipy.signal import fftconvolve
 from scipy.stats import multivariate_normal
 from importlib import import_module
+from collections import deque
 
 import torch
 from torch import nn
@@ -13,15 +14,15 @@ from torch import optim
 from .wrap_func import dilig
 
 
-def get_img(Dx, deteriolated_imgs, channel=1):
-    n = len(deteriolated_imgs)
+def get_img(Dx, Dy, channel=1):
+    n = len(Dy)
     i = np.random.choice(n)
-    y, x = Dx[i], deteriolated_imgs[i]
+    x, y = Dx[i], Dy[i]
     if channel == 1:
-        x = x.unsqueeze(0).unsqueeze(0)
+        s = y.unsqueeze(0).unsqueeze(0)
     elif channel == 2:
-        x = torch.stack([x, x], dim=0).unsqueeze(0)
-    return (x, y.unsqueeze(0))
+        s = torch.stack([y, y], dim=0).unsqueeze(0)
+    return (s, x)
 
 
 # model #
@@ -69,24 +70,29 @@ class QNet(torch.nn.Module):
         x = self.fc(x)
         return x, self.scale*x
     
-def next_state(s, a, filt, channel):
-    x, y = s
-    x_next = filt[a](x.numpy()[0, 0])
-    x_next = torch.from_numpy(x_next).to(torch.float)
+def next_state(s_x, a, actions, channel):
+    s, x = s_x
+    z, y = s[0]
+    z_next = actions[a](z.numpy())
+    z_next = torch.from_numpy(z_next).to(torch.float)
     if channel == 1:
-        x_next = x_next.unsqueeze(0).unsqueeze(1)
+        s_next = z_next.unsqueeze(0).unsqueeze(0)
     elif channel == 2:
-        x_next = torch.stack([x_next, x[0, 1]], dim=0).unsqueeze(0)
-    return (x_next, y)
+        s_next = torch.stack([z_next, y], dim=0).unsqueeze(0)
+    return (s_next, x)
 
 
-# def reward(s, s_next, a):
-#     x_next, y = s_next
-#     return - torch.mean((x_next[0, 0] - y[0, 0])**2).item()
+def reward(s_x, s_next_x, a):
+    s_next, x = s_next_x
+    z_next = s_next[0, 0]
+    return - torch.mean((z_next - x)**2).item()
 
-def reward(s, s_next, a):
-    x_next, y = s_next
-    return torch.sum((x_next[0, 0] * y[0, 0])).item()
+
+# def reward(s_x, s_next_x, a):
+#     s_next, x = s_next_x
+#     z_next = s_next[0, 0]
+#     return torch.mean((z_next * x)).item()
+
 
 # NOTE: 元の報酬関数を、ステップ数が後半であるほど高い値を与えるよう重みづけした。
 # WARNING: ↑これは全く必要ない工夫。なぜならAgentのアウトプットのMSEが小さければ
@@ -97,58 +103,61 @@ def reward(s, s_next, a):
 #     return [(0, sl), (0, -sl), (-sl, 0), (sl, 0)][j]
 
 # ### シフト幅reward
-# def reward(s, s_next, a):
-#     x_next, y = s_next
+# def reward(s_x, s_next_x, a):
+#     s_next, x = s_next_x
+#     z_next = s_next[0, 0]
 #     min_sl = 0
-#     min_mse = torch.mean((x_next[0, 0] - y[0, 0])**2).item()
+#     min_mse = torch.mean((z_next - x)**2).item()
 #     for i in range(1, 15):  # シフト数
 #         for j in range(4):  # 上下左右
-#             o = x_next[0, 0].clone()
+#             o = z_next.clone()
 #             dx, dy = get_dxdy(i, j)
 #             o = dilig(lambda A: np.roll(A, (dy, dx), axis=(0, 1)))(o)
-#             mse = torch.mean((o - y[0, 0])**2).item()
+#             mse = torch.mean((o - x)**2).item()
 #             if mse < min_mse:
 #                 min_mse = mse
 #                 min_sl = i
 #     return - min_sl
 
-def step(Qnet, s, history, filt, channel, lr=0.1, gamma=0.9, eps=0.1, device='cuda:0'):
-    x, y = s
+def step(Qnet, s_x, history, actions, channel, lr=0.1, gamma=0.9, eps=0.1, device='cuda:0'):
+    s, x = s_x
     
     # action -- eps greedy
     n = np.random.rand()
     if n < eps:
-        a = np.random.randint(len(filt))
+        a = np.random.randint(len(actions))
     else:
         with torch.no_grad():
-            _, q = Qnet(x.to(device))
+            _, q = Qnet(s.to(device))
             q = q[0].to('cpu').detach().numpy()
         a = np.argmax(q)
     
     # reward
     with torch.no_grad():
-        s_next = next_state(s, a, filt, channel)
-        r = reward(s, s_next, a)
+        s_next_x = next_state(s_x, a, actions, channel)
+        r = reward(s_x, s_next_x, a)
     
-    history.append((s, s_next, a, r))
-    return s_next, r, history
+    history.append((s_x, s_next_x, a, r))
+    return s_next_x, r, history
 
 
 def subhistory(Qnet, history, idx):
-    xN, x_nextN, yN, aN, rN = [], [], [], [], []
+    sN, s_nextN, xN, aN, rN = [], [], [], [], []
     for i in idx:
-        s, s_next, b, r = history[i]
-        xN.append(s[0])
-        x_nextN.append(s_next[0])
-        yN.append(s[1])
+        s_x, s_next_x, b, r = history[i]
+        s, s_next = s_x[0], s_next_x[0]
+        x = s_x[1]
+        sN.append(s)
+        s_nextN.append(s_next)
+        xN.append(x)
         aN.append(b)
         rN.append(r)
-    xN = torch.cat(xN, dim=0)
-    x_nextN = torch.cat(x_nextN, dim=0)
-    yN = torch.cat(yN, dim=0)
+    sN = torch.cat(sN, dim=0)
+    s_nextN = torch.cat(s_nextN, dim=0)
+    xN = torch.stack(xN, dim=0)
     aN = np.array(aN)
     rN = torch.tensor(rN).to(torch.float)
-    return xN, x_nextN, yN, aN, rN
+    return sN, s_nextN, xN, aN, rN
 
     
 ### train ###
@@ -171,11 +180,14 @@ def train(Dy, Dx, actions, channel=1, weight=0.0, outdir='./', trial_num=20000, 
     eps = 0.1
     gamma = 0.9
     batch = 50
+    # T = 16
     T = 5
 
     # training
     R = []
+    # history = deque(maxlen=1024)
     history = []
+    print(type(history))
     TRIAL_NUM = trial_num
     FREQ = 500
     print('start trainning...')
@@ -183,9 +195,9 @@ def train(Dy, Dx, actions, channel=1, weight=0.0, outdir='./', trial_num=20000, 
         np.random.seed(itr)
         for _ in range(20):
             Ri = 0
-            s = get_img(Dx, Dy, channel)
+            s_x = get_img(Dx, Dy, channel)
             for i in range(T):
-                s, r, history = step(Qnet, s, history, actions, channel, gamma=gamma, eps=eps, device=device)
+                s_x, r, history = step(Qnet, s_x, history, actions, channel, gamma=gamma, eps=eps, device=device)
                 Ri = Ri + r
             R.append(Ri)
 
@@ -195,31 +207,31 @@ def train(Dy, Dx, actions, channel=1, weight=0.0, outdir='./', trial_num=20000, 
         # update parameter
         with torch.no_grad():
             idx = np.random.choice(len(history), batch)
-            x, x_next, y, a, r = subhistory(Qnet, history, idx)
+            sN, s_nextN, xN, aN, rN = subhistory(Qnet, history, idx)
 
             # loss - Q
-            _, q = Qnet(x_next.to(device))
-            q = r.to(device) + gamma * torch.max(q, dim=1)[0]
+            _, q_nextN = Qnet(s_nextN.to(device))
+            q_nextN = rN.to(device) + gamma * torch.max(q_nextN, dim=1)[0]
 
             # loss - clf
-            t = []
-            for xn, yn in zip(x, y):
-                xn, yn = xn[0].numpy(), yn.numpy()
-                X = np.stack([f(xn) for f in actions], axis=0)
-                err = np.sum((X - yn)**2, axis=(1, 2))
+            tN = []
+            for sn, xn in zip(sN, xN):
+                zn, xn = sn[0].numpy(), xn.numpy()
+                Z = np.stack([f(zn) for f in actions], axis=0)
+                err = np.sum((Z - xn)**2, axis=(1, 2))
                 b = np.argmin(err)
-                t.append(b)
-            t = torch.tensor(t)
+                tN.append(b)
+            tN = torch.tensor(tN)
 
-        x, q, t = x.to(device), q.to(device), t.to(device)
-        z, p = Qnet(x)
+        sN, q_nextN, tN = sN.to(device), q_nextN.to(device), tN.to(device)
+        pN, qN = Qnet(sN)
         loss1 = 0
         for b in range(len(actions)):
-            idx = np.where(a == b)[0]
+            idx = np.where(aN == b)[0]
             if idx.size == 0:
                 continue
-            loss1 = loss1 + loss_fn(p[idx, b], q[idx])
-        loss2 = loss_fn2(z, t)
+            loss1 = loss1 + loss_fn(qN[idx, b], q_nextN[idx])
+        loss2 = loss_fn2(pN, tN)
         loss = loss1 + weight * loss2
         optimizer.zero_grad()
         loss.backward()
