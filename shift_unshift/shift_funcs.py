@@ -7,16 +7,6 @@ from src import dilig
 import numpy as np
 
 
-# FUNCS, ACTIONSをセットで渡す場合
-# NOTE: こいつは没になったが一応残している。
-def get_funcs(
-    dx,
-    dy
-):
-    func_shift = dilig(lambda A: np.roll(A, (dx, dy), axis=(0, 1))) 
-    func_unshift = dilig(lambda A: np.roll(A, (-dx, -dy), axis=(0, 1)))
-    return func_shift, func_unshift
-
 # 可逆シフト
 S = 8
 # S = 6
@@ -42,14 +32,7 @@ def shift(A, dx, dy):
         else:  #左
             A[:, 0:abs(dx)] = 0
     return np.roll(A, (dy, dx), axis=(0, 1))
-
-# 不可逆シフト 上下左右
-FUNCS_IRREV = [
-    dilig(lambda A, dx=dx, dy=dy: shift(A, dx, dy)) for dx, dy in [(0, S),(0, -S),(-S, 0),(S, 0)]
-]
-ACTIONS_IRREV = [
-    dilig(lambda A, dx=dx, dy=dy: shift(A, dx, dy)) for dx, dy in [(0, 2), (0, -2), (-2, 0), (2, 0)]
-]
+    
 
 # テスト用の対角要素も含んだ変換の候補
 FUNCS_DIAG = [
@@ -60,7 +43,7 @@ FUNCS_DIAG = [
 
 # 増やしていく行動集合
 np.random.seed(0)
-n = 50
+n = 20
 ACTIONS_DISASTER = ACTIONS_INVERT + [
     dilig(lambda A, dx=dx, dy=dy: np.roll(A, (dy, dx), axis=(0, 1))) for dx, dy in np.random.randint(3, 10, (n, 2))
 ]

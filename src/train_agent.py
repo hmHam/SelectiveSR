@@ -1,17 +1,15 @@
-import os
 import argparse
+import os
 import pickle
+from collections import deque
+from importlib import import_module
+
 import numpy as np
-from numpy.fft import fftshift, fft2
+import torch
+from numpy.fft import fft2, fftshift
 from scipy.signal import fftconvolve
 from scipy.stats import multivariate_normal
-from importlib import import_module
-from collections import deque
-
-import torch
-from torch import nn
-from torch import optim
-from .wrap_func import dilig
+from torch import nn, optim
 
 
 def get_img(Dx, Dy, channel=1):
@@ -70,7 +68,7 @@ class QNet(torch.nn.Module):
         x = self.fc(x)
         return x, self.scale*x
     
-def next_state(s_x, a, actions, channel):
+def next_state(s_x: tuple, a, actions, channel):
     s, x = s_x
     z, y = s[0]
     z_next = actions[a](z.numpy())
@@ -82,16 +80,17 @@ def next_state(s_x, a, actions, channel):
     return (s_next, x)
 
 
-def reward(s_x, s_next_x, a):
-    s_next, x = s_next_x
-    z_next = s_next[0, 0]
-    return - torch.mean((z_next - x)**2).item()
-
-
 # def reward(s_x, s_next_x, a):
 #     s_next, x = s_next_x
 #     z_next = s_next[0, 0]
-#     return torch.mean((z_next * x)).item()
+#     return - torch.mean((z_next - x)**2).item()
+
+
+# shift_unshiftの報酬関数
+def reward(s_x, s_next_x, a):
+    s_next, x = s_next_x
+    z_next = s_next[0, 0]
+    return torch.mean((z_next * x)).item()
 
 
 # NOTE: 元の報酬関数を、ステップ数が後半であるほど高い値を与えるよう重みづけした。
@@ -184,10 +183,13 @@ def train(Dy, Dx, actions, channel=1, weight=0.0, outdir='./', trial_num=20000, 
     T = 5
 
     # training
+    # TODO: 
+    # historyはメモリに載せる必要がないので
+    # sqliteなどの簡易データベースにする。
+    # sqliteのREAL型は8バイト浮動小数点でdouble型と対応
     R = []
-    # history = deque(maxlen=1024)
-    history = []
-    print(type(history))
+    history = deque(maxlen=1024)
+    # history = []
     TRIAL_NUM = trial_num
     FREQ = 500
     print('start trainning...')

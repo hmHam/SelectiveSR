@@ -1,8 +1,10 @@
-### 学習済みのagentに対してテストデータに対する復元結果のMSEを評価する。
+### 学習済みのagentに対してテストデータに対する復元結果のMSEを評価する
 import os
-import torch
+
 import numpy as np
+import torch
 from tqdm import tqdm
+
 
 class Agent(object):
     def __init__(self, Qnet, actions, channel):
@@ -64,6 +66,7 @@ def agent_metrics(test_dataset, origin, Qnet, action_candidates, channel=1, outd
     return metrics
 
 def random_metrics(Dy, Dx, actions, seed):
+    '''(要求)与えられた行動集合からランダムに行動を選択した場合のMSEの値を返す'''
     np.random.seed(seed)
     aN = np.random.choice(len(actions), (Dy.shape[0], 5))
     for n in range(Dy.shape[0]):

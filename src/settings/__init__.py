@@ -1,4 +1,1 @@
-from . import setting1
-from . import setting2
-from . import setting3
-from . import setting4
+from . import setting1, setting2, setting3, setting4

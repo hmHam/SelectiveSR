@@ -51,7 +51,7 @@ if __name__ == '__main__':
     parser.add_argument('--start', default=0, type=int, help='start seed')
     parser.add_argument('--end', default=1, type=int, help='end seed')
     parser.add_argument('--gpu', default=0, type=int, help='gpu index')
-    parser.add_argument('--setting', default=1, type=int, help='setting file')
+    parser.add_argument('--setting', default=4, type=int, help='setting file')
     parser.add_argument('--data-file', default=None, type=str, help='train data_file/train_gauss_dataset.npz, train_with_random_dataset.npz, train_random_dataset.npz')
     parser.add_argument('--outdir', required=True, type=str, help='outdir')
     parser.add_argument('--augument', type=bool, default=False)

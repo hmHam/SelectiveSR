@@ -1,6 +1,8 @@
 import os
 import pickle
+
 import numpy as np
+
 
 def moving_average(r, n):
     ret = np.cumsum(r)

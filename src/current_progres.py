@@ -2,8 +2,8 @@
 実験のdata, resultsディレクトリのある対象にどれだけのファイルが含まれいているかをチェックするコマンド
 '''
 import argparse
-from pathlib import Path
 import re
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--project-root', type=str, help='実験名', required=True)
